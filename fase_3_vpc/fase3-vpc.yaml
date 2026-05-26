@@ -1,0 +1,436 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: VPC 3 capas para laboratorio EKS/ECS DevOps
+
+Resources:
+
+# =========================================================
+# VPC
+# =========================================================
+
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/20
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: laboratorio-vpc
+
+# =========================================================
+# INTERNET GATEWAY
+# =========================================================
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: laboratorio-igw
+
+  AttachGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      InternetGatewayId: !Ref InternetGateway
+      VpcId: !Ref VPC
+
+# =========================================================
+# PUBLIC SUBNETS (FRONT)
+# =========================================================
+
+  PublicSubnetA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: us-east-1a
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.0.0/24
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: PublicSubnetA
+
+        - Key: kubernetes.io/role/elb
+          Value: "1"
+
+        - Key: kubernetes.io/cluster/laboratorio-eks
+          Value: shared
+
+  PublicSubnetB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: us-east-1b
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.3.0/24
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: PublicSubnetB
+
+        - Key: kubernetes.io/role/elb
+          Value: "1"
+
+        - Key: kubernetes.io/cluster/laboratorio-eks
+          Value: shared
+
+# =========================================================
+# PRIVATE APP SUBNETS
+# =========================================================
+
+  AppSubnetA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: us-east-1a
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.1.0/24
+      Tags:
+        - Key: Name
+          Value: AppSubnetA
+
+        - Key: kubernetes.io/role/internal-elb
+          Value: "1"
+
+        - Key: kubernetes.io/cluster/laboratorio-eks
+          Value: shared
+
+  AppSubnetB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: us-east-1b
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.4.0/24
+      Tags:
+        - Key: Name
+          Value: AppSubnetB
+
+        - Key: kubernetes.io/role/internal-elb
+          Value: "1"
+
+        - Key: kubernetes.io/cluster/laboratorio-eks
+          Value: shared
+
+# =========================================================
+# PRIVATE DATA SUBNETS
+# =========================================================
+
+  DataSubnetA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: us-east-1a
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.2.0/24
+      Tags:
+        - Key: Name
+          Value: DataSubnetA
+
+  DataSubnetB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: us-east-1b
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.5.0/24
+      Tags:
+        - Key: Name
+          Value: DataSubnetB
+
+# =========================================================
+# PUBLIC ROUTE TABLE
+# =========================================================
+
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: PublicRouteTable
+
+  PublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: AttachGateway
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+# =========================================================
+# PUBLIC ASSOCIATIONS
+# =========================================================
+
+  AssocPublicA:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      SubnetId: !Ref PublicSubnetA
+
+  AssocPublicB:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      SubnetId: !Ref PublicSubnetB
+
+# =========================================================
+# APP ROUTE TABLE
+# =========================================================
+
+  AppRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: AppRouteTable
+
+  AssocAppA:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref AppRouteTable
+      SubnetId: !Ref AppSubnetA
+
+  AssocAppB:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref AppRouteTable
+      SubnetId: !Ref AppSubnetB
+
+# =========================================================
+# DATA ROUTE TABLE
+# =========================================================
+
+  DataRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: DataRouteTable
+
+  AssocDataA:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref DataRouteTable
+      SubnetId: !Ref DataSubnetA
+
+  AssocDataB:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref DataRouteTable
+      SubnetId: !Ref DataSubnetB
+
+# =========================================================
+# SECURITY GROUP FRONTEND
+# =========================================================
+
+  SGFrontend:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Frontend HTTP
+      VpcId: !Ref VPC
+
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+
+      Tags:
+        - Key: Name
+          Value: SGFrontend
+
+# =========================================================
+# SECURITY GROUP APP
+# =========================================================
+
+  SGApp:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Backend APP 8080
+      VpcId: !Ref VPC
+
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 8080
+          ToPort: 8080
+          SourceSecurityGroupId: !Ref SGFrontend
+
+      Tags:
+        - Key: Name
+          Value: SGApp
+
+# =========================================================
+# SECURITY GROUP DATABASE
+# =========================================================
+
+  SGDB:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: MYSQL 3306
+      VpcId: !Ref VPC
+
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 3306
+          ToPort: 3306
+          SourceSecurityGroupId: !Ref SGApp
+
+      Tags:
+        - Key: Name
+          Value: SGDB
+
+# =========================================================
+# SECURITY GROUP VPC ENDPOINTS
+# =========================================================
+
+  SGEndpoints:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security Group VPC Endpoints
+      VpcId: !Ref VPC
+
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 10.0.0.0/20
+
+      Tags:
+        - Key: Name
+          Value: SGEndpoints
+
+# =========================================================
+# VPC ENDPOINTS
+# =========================================================
+
+  VPCEndpointECRAPI:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcEndpointType: Interface
+      PrivateDnsEnabled: true
+      ServiceName: !Sub com.amazonaws.${AWS::Region}.ecr.api
+      VpcId: !Ref VPC
+
+      SubnetIds:
+        - !Ref AppSubnetA
+        - !Ref AppSubnetB
+
+      SecurityGroupIds:
+        - !Ref SGEndpoints
+
+  VPCEndpointECRDKR:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcEndpointType: Interface
+      PrivateDnsEnabled: true
+      ServiceName: !Sub com.amazonaws.${AWS::Region}.ecr.dkr
+      VpcId: !Ref VPC
+
+      SubnetIds:
+        - !Ref AppSubnetA
+        - !Ref AppSubnetB
+
+      SecurityGroupIds:
+        - !Ref SGEndpoints
+
+  VPCEndpointSTS:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcEndpointType: Interface
+      PrivateDnsEnabled: true
+      ServiceName: !Sub com.amazonaws.${AWS::Region}.sts
+      VpcId: !Ref VPC
+
+      SubnetIds:
+        - !Ref AppSubnetA
+        - !Ref AppSubnetB
+
+      SecurityGroupIds:
+        - !Ref SGEndpoints
+
+  VPCEndpointEKS:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcEndpointType: Interface
+      PrivateDnsEnabled: true
+      ServiceName: !Sub com.amazonaws.${AWS::Region}.eks
+      VpcId: !Ref VPC
+
+      SubnetIds:
+        - !Ref AppSubnetA
+        - !Ref AppSubnetB
+
+      SecurityGroupIds:
+        - !Ref SGEndpoints
+
+  VPCEndpointEC2:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcEndpointType: Interface
+      PrivateDnsEnabled: true
+      ServiceName: !Sub com.amazonaws.${AWS::Region}.ec2
+      VpcId: !Ref VPC
+
+      SubnetIds:
+        - !Ref AppSubnetA
+        - !Ref AppSubnetB
+
+      SecurityGroupIds:
+        - !Ref SGEndpoints
+
+  VPCEndpointLogs:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcEndpointType: Interface
+      PrivateDnsEnabled: true
+      ServiceName: !Sub com.amazonaws.${AWS::Region}.logs
+      VpcId: !Ref VPC
+
+      SubnetIds:
+        - !Ref AppSubnetA
+        - !Ref AppSubnetB
+
+      SecurityGroupIds:
+        - !Ref SGEndpoints
+
+  VPCEndpointS3:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcEndpointType: Gateway
+      ServiceName: !Sub com.amazonaws.${AWS::Region}.s3
+      VpcId: !Ref VPC
+
+      RouteTableIds:
+        - !Ref AppRouteTable
+        - !Ref DataRouteTable
+
+# =========================================================
+# OUTPUTS
+# =========================================================
+
+Outputs:
+
+  VPCId:
+    Description: VPC ID
+    Value: !Ref VPC
+
+  PublicSubnets:
+    Description: Public Subnets
+    Value: !Join [ ",", [ !Ref PublicSubnetA, !Ref PublicSubnetB ] ]
+
+  AppSubnets:
+    Description: App Subnets
+    Value: !Join [ ",", [ !Ref AppSubnetA, !Ref AppSubnetB ] ]
+
+  DataSubnets:
+    Description: Data Subnets
+    Value: !Join [ ",", [ !Ref DataSubnetA, !Ref DataSubnetB ] ]
+
+  SGFrontend:
+    Description: Frontend Security Group
+    Value: !Ref SGFrontend
+
+  SGApp:
+    Description: App Security Group
+    Value: !Ref SGApp
+
+  SGDB:
+    Description: Database Security Group
+    Value: !Ref SGDB

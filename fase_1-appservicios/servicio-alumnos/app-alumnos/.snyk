@@ -1,0 +1,18 @@
+# Snyk Policy File
+# This file describes the rules Snyk should use to ignore or treat certain issues
+# Learn more: https://docs.snyk.io/products/snyk-security-policy/snyk-policy-files
+
+# Ignore specific vulnerabilities
+ignore:
+  # Example: ignore a specific vulnerability
+  # - SNYK-JAVA-ORGAPACHECOMMONS-123456:
+  #   - "*": 
+  #     - reason: "This vulnerability is accepted for this project"
+  #       expires: "2024-12-31"
+
+# Severity threshold
+severityThreshold: high
+
+# Auto-fix settings
+autoFix: true
+autoUpgrade: true
