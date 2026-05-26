@@ -1,3 +1,103 @@
+
+# VPC
+
+```mermaid
+
+fase3-vpc(3).yaml
+Archivo
+lee este archivo de github y crea un mermaid
+
+flowchart TB
+
+    Internet((Internet))
+    IGW[Internet Gateway]
+
+    subgraph VPC["VPC 10.0.0.0/20"]
+    
+        subgraph PUBLIC["Capa Pública"]
+            PUBA["PublicSubnetA<br/>10.0.0.0/24<br/>us-east-1a"]
+            PUBB["PublicSubnetB<br/>10.0.3.0/24<br/>us-east-1b"]
+
+            SGFE["SGFrontend<br/>HTTP 80"]
+        end
+
+        subgraph APP["Capa Aplicación"]
+            APPA["AppSubnetA<br/>10.0.1.0/24<br/>us-east-1a"]
+            APPB["AppSubnetB<br/>10.0.4.0/24<br/>us-east-1b"]
+
+            SGAPP["SGApp<br/>TCP 8080"]
+        end
+
+        subgraph DATA["Capa Datos"]
+            DATAA["DataSubnetA<br/>10.0.2.0/24<br/>us-east-1a"]
+            DATAB["DataSubnetB<br/>10.0.5.0/24<br/>us-east-1b"]
+
+            SGDB["SGDB<br/>MYSQL 3306"]
+        end
+
+        subgraph ENDPOINTS["VPC Endpoints"]
+            SGEP["SGEndpoints<br/>HTTPS 443"]
+
+            ECRAPI["ECR API"]
+            ECRDKR["ECR DKR"]
+            STS["STS"]
+            EKS["EKS"]
+            EC2["EC2"]
+            LOGS["CloudWatch Logs"]
+            S3["S3 Gateway Endpoint"]
+        end
+
+        subgraph ROUTES["Route Tables"]
+            PUBRT["PublicRouteTable"]
+            APPRT["AppRouteTable"]
+            DATART["DataRouteTable"]
+        end
+    end
+
+    Internet --> IGW
+    IGW --> PUBRT
+
+    PUBRT --> PUBA
+    PUBRT --> PUBB
+
+    APPRT --> APPA
+    APPRT --> APPB
+
+    DATART --> DATAA
+    DATART --> DATAB
+
+    SGFE --> SGAPP
+    SGAPP --> SGDB
+
+    APPA --> ECRAPI
+    APPB --> ECRAPI
+
+    APPA --> ECRDKR
+    APPB --> ECRDKR
+
+    APPA --> STS
+    APPB --> STS
+
+    APPA --> EKS
+    APPB --> EKS
+
+    APPA --> EC2
+    APPB --> EC2
+
+    APPA --> LOGS
+    APPB --> LOGS
+
+    APPRT --> S3
+    DATART --> S3
+
+    SGEP --> ECRAPI
+    SGEP --> ECRDKR
+    SGEP --> STS
+    SGEP --> EKS
+    SGEP --> EC2
+    SGEP --> LOGS
+
+```
 ### 1. Crear la infraestructura de red
 
 ```
