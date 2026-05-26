@@ -1,12 +1,10 @@
 
 # VPC
 
+
+
+
 ```mermaid
-
-fase3-vpc(3).yaml
-Archivo
-lee este archivo de github y crea un mermaid
-
 flowchart TB
 
     Internet((Internet))
@@ -34,70 +32,16 @@ flowchart TB
 
             SGDB["SGDB<br/>MYSQL 3306"]
         end
-
-        subgraph ENDPOINTS["VPC Endpoints"]
-            SGEP["SGEndpoints<br/>HTTPS 443"]
-
-            ECRAPI["ECR API"]
-            ECRDKR["ECR DKR"]
-            STS["STS"]
-            EKS["EKS"]
-            EC2["EC2"]
-            LOGS["CloudWatch Logs"]
-            S3["S3 Gateway Endpoint"]
-        end
-
-        subgraph ROUTES["Route Tables"]
-            PUBRT["PublicRouteTable"]
-            APPRT["AppRouteTable"]
-            DATART["DataRouteTable"]
-        end
     end
 
     Internet --> IGW
-    IGW --> PUBRT
-
-    PUBRT --> PUBA
-    PUBRT --> PUBB
-
-    APPRT --> APPA
-    APPRT --> APPB
-
-    DATART --> DATAA
-    DATART --> DATAB
+    IGW --> PUBA
+    IGW --> PUBB
 
     SGFE --> SGAPP
     SGAPP --> SGDB
-
-    APPA --> ECRAPI
-    APPB --> ECRAPI
-
-    APPA --> ECRDKR
-    APPB --> ECRDKR
-
-    APPA --> STS
-    APPB --> STS
-
-    APPA --> EKS
-    APPB --> EKS
-
-    APPA --> EC2
-    APPB --> EC2
-
-    APPA --> LOGS
-    APPB --> LOGS
-
-    APPRT --> S3
-    DATART --> S3
-
-    SGEP --> ECRAPI
-    SGEP --> ECRDKR
-    SGEP --> STS
-    SGEP --> EKS
-    SGEP --> EC2
-    SGEP --> LOGS
-
 ```
+
 ### 1. Crear la infraestructura de red
 
 ```
