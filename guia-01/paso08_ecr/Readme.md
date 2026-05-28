@@ -342,7 +342,6 @@ utilizando:
 * HPA
 * Auto-healing
 
-
 # PASO 8 — Publicar imágenes Docker en Amazon ECR
 
 ## Objetivo
@@ -450,7 +449,7 @@ El proceso se repetirá para:
 # Navegar carpeta DB
 
 ```
-cd ~/0000000/guia2/paso08_ecr/app/db
+cd paso08_ecr/app/db
 ```
 
 ---

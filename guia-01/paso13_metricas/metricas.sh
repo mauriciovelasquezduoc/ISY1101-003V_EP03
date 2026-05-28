@@ -2,177 +2,169 @@
 
 set -e
 
-# =====================================================
-# VARIABLES
-# =====================================================
-
-REGION="us-east-1"
-REPOSITORY_NAME="tienda-db"
-IMAGE_TAG="eks-v1"
+NAMESPACE="tienda"
 
 echo ""
 echo "====================================================="
-echo " VALIDANDO AWS CLI"
+echo " KUBERNETES METRICS VALIDATION"
 echo "====================================================="
 echo ""
 
-aws sts get-caller-identity
-
 echo ""
 echo "====================================================="
-echo " OBTENIENDO ACCOUNT ID"
+echo " VALIDANDO METRICS SERVER"
 echo "====================================================="
 echo ""
 
-ACCOUNT_ID=$(aws sts get-caller-identity \
-  --query Account \
-  --output text)
-
-echo "ACCOUNT_ID=$ACCOUNT_ID"
+kubectl get pods -n kube-system \
+  | grep metrics-server || true
 
 echo ""
 echo "====================================================="
-echo " VALIDANDO DOCKER"
+echo " VALIDANDO API METRICS"
 echo "====================================================="
 echo ""
 
-docker --version
+kubectl get apiservices \
+  | grep metrics || true
 
 echo ""
 echo "====================================================="
-echo " VALIDANDO ARCHIVOS"
+echo " VALIDANDO NODOS"
 echo "====================================================="
 echo ""
 
-ls -lh
+kubectl get nodes
 
 echo ""
 echo "====================================================="
-echo " VALIDANDO DOCKERFILE"
+echo " METRICAS NODOS"
 echo "====================================================="
 echo ""
 
-if [ ! -f Dockerfile ]; then
-  echo "ERROR: Dockerfile no encontrado"
-  exit 1
-fi
-
-echo "Dockerfile OK"
+kubectl top nodes || true
 
 echo ""
 echo "====================================================="
-echo " VALIDANDO INIT.SQL"
+echo " METRICAS PODS"
 echo "====================================================="
 echo ""
 
-if [ ! -f init.sql ]; then
-  echo "WARNING: init.sql no encontrado"
-else
-  echo "init.sql OK"
-fi
+kubectl top pods -n $NAMESPACE || true
 
 echo ""
 echo "====================================================="
-echo " VALIDANDO REPOSITORIO ECR"
+echo " VALIDANDO HPA"
 echo "====================================================="
 echo ""
 
-REPO_EXISTS=$(aws ecr describe-repositories \
-  --repository-names $REPOSITORY_NAME \
-  --region $REGION \
-  --query "repositories[0].repositoryName" \
-  --output text 2>/dev/null || true)
-
-if [ "$REPO_EXISTS" == "$REPOSITORY_NAME" ]; then
-
-  echo "Repositorio ECR ya existe"
-
-else
-
-  echo "Creando repositorio ECR..."
-
-  aws ecr create-repository \
-    --repository-name $REPOSITORY_NAME \
-    --region $REGION
-
-fi
+kubectl get hpa -n $NAMESPACE
 
 echo ""
 echo "====================================================="
-echo " LOGIN AMAZON ECR"
+echo " DETALLE HPA"
 echo "====================================================="
 echo ""
 
-aws ecr get-login-password --region $REGION | \
-docker login \
-  --username AWS \
-  --password-stdin \
-  $ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com
+kubectl describe hpa -n $NAMESPACE
 
 echo ""
 echo "====================================================="
-echo " BUILD IMAGEN DOCKER"
+echo " VALIDANDO DEPLOYMENTS"
 echo "====================================================="
 echo ""
 
-docker build -t $REPOSITORY_NAME .
+kubectl get deployment -n $NAMESPACE
 
 echo ""
 echo "====================================================="
-echo " VALIDANDO IMAGEN LOCAL"
+echo " VALIDANDO SERVICES"
 echo "====================================================="
 echo ""
 
-docker images | grep $REPOSITORY_NAME || true
+kubectl get svc -n $NAMESPACE
 
 echo ""
 echo "====================================================="
-echo " CREANDO TAG ECR"
+echo " VALIDANDO PODS"
 echo "====================================================="
 echo ""
 
-docker tag $REPOSITORY_NAME:latest \
-$ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com/$REPOSITORY_NAME:$IMAGE_TAG
+kubectl get pods -n $NAMESPACE
 
 echo ""
 echo "====================================================="
-echo " PUSH IMAGEN A ECR"
+echo " VALIDANDO EVENTOS"
 echo "====================================================="
 echo ""
 
-docker push \
-$ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com/$REPOSITORY_NAME:$IMAGE_TAG
+kubectl get events -n $NAMESPACE \
+  --sort-by=.metadata.creationTimestamp || true
 
 echo ""
 echo "====================================================="
-echo " VALIDANDO IMAGEN EN ECR"
+echo " VALIDANDO CLOUDWATCH LOGS"
 echo "====================================================="
 echo ""
 
-aws ecr list-images \
-  --repository-name $REPOSITORY_NAME \
-  --region $REGION \
-  --output table
+aws logs describe-log-groups \
+  --query "logGroups[*].logGroupName" \
+  --output table || true
 
 echo ""
 echo "====================================================="
-echo " IMAGEN PUBLICADA CORRECTAMENTE"
+echo " VALIDACION CLOUDWATCH EKS"
 echo "====================================================="
 echo ""
 
-echo "IMAGE URI:"
-echo ""
-echo "$ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com/$REPOSITORY_NAME:$IMAGE_TAG"
+aws eks describe-cluster \
+  --name laboratorio-eks \
+  --query "cluster.logging" \
+  --output table || true
 
 echo ""
 echo "====================================================="
-echo " IMPORTANTE PARA KUBERNETES YAML"
+echo " COMANDOS MONITOREO LIVE"
 echo "====================================================="
 echo ""
 
-echo "Actualizar mysql-deployment.yaml:"
+echo "Pods:"
+echo "kubectl get pods -n tienda -w"
+
 echo ""
-echo "image: $ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com/$REPOSITORY_NAME:$IMAGE_TAG"
+echo "HPA:"
+echo "kubectl get hpa -n tienda -w"
+
+echo ""
+echo "Top Pods:"
+echo "kubectl top pods -n tienda"
+
+echo ""
+echo "Top Nodes:"
+echo "kubectl top nodes"
+
+echo ""
+echo "K9s:"
+echo "k9s"
+
+echo ""
+echo "====================================================="
+echo " AWS WEB CONSOLE"
+echo "====================================================="
+echo ""
+
+echo "AWS Console -> CloudWatch -> Metrics"
+echo "AWS Console -> EKS -> laboratorio-eks -> Monitoring"
+
+echo ""
+echo "====================================================="
+echo " OBSERVABILIDAD VALIDADA"
+echo "====================================================="
+echo ""
+
+echo "Metrics Server operativo"
+echo "HPA monitoreando CPU"
+echo "CloudWatch operativo"
 
 echo ""
 echo "====================================================="

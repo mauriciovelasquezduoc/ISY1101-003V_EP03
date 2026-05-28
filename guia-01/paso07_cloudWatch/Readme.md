@@ -11,6 +11,14 @@ Validar la integración entre Amazon EKS y Amazon CloudWatch para:
 * métricas infraestructura
 * eventos EKS
 
+
+# Ejecutar
+
+```
+bash configurar-validar.sh 
+```
+
+
 ---
 
 # ¿Qué es CloudWatch?

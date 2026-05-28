@@ -15,6 +15,15 @@ Esto permitirá:
 * administrar namespaces
 * utilizar HPA
 
+
+
+## Ejecutar
+
+```
+bash configurar-validar.sh 
+```
+
+
 ---
 
 # ¿Qué es kubectl?

@@ -2,177 +2,140 @@
 
 set -e
 
-# =====================================================
-# VARIABLES
-# =====================================================
-
-REGION="us-east-1"
-REPOSITORY_NAME="tienda-db"
-IMAGE_TAG="eks-v1"
+NAMESPACE="tienda"
 
 echo ""
 echo "====================================================="
-echo " VALIDANDO AWS CLI"
+echo " KUBERNETES AUTO-HEALING TEST"
 echo "====================================================="
 echo ""
 
-aws sts get-caller-identity
-
 echo ""
 echo "====================================================="
-echo " OBTENIENDO ACCOUNT ID"
+echo " VALIDANDO PODS ACTUALES"
 echo "====================================================="
 echo ""
 
-ACCOUNT_ID=$(aws sts get-caller-identity \
-  --query Account \
-  --output text)
-
-echo "ACCOUNT_ID=$ACCOUNT_ID"
+kubectl get pods -n $NAMESPACE
 
 echo ""
 echo "====================================================="
-echo " VALIDANDO DOCKER"
+echo " VALIDANDO DEPLOYMENTS"
 echo "====================================================="
 echo ""
 
-docker --version
+kubectl get deployment -n $NAMESPACE
 
 echo ""
 echo "====================================================="
-echo " VALIDANDO ARCHIVOS"
+echo " VALIDANDO REPLICASETS"
 echo "====================================================="
 echo ""
 
-ls -lh
+kubectl get rs -n $NAMESPACE
 
 echo ""
 echo "====================================================="
-echo " VALIDANDO DOCKERFILE"
+echo " SELECCIONANDO POD BACKEND"
 echo "====================================================="
 echo ""
 
-if [ ! -f Dockerfile ]; then
-  echo "ERROR: Dockerfile no encontrado"
-  exit 1
-fi
+BACKEND_POD=$(kubectl get pods -n $NAMESPACE \
+  | grep tienda-backend \
+  | awk '{print $1}' \
+  | head -n 1)
 
-echo "Dockerfile OK"
-
-echo ""
-echo "====================================================="
-echo " VALIDANDO INIT.SQL"
-echo "====================================================="
-echo ""
-
-if [ ! -f init.sql ]; then
-  echo "WARNING: init.sql no encontrado"
-else
-  echo "init.sql OK"
-fi
+echo "POD SELECCIONADO:"
+echo "$BACKEND_POD"
 
 echo ""
 echo "====================================================="
-echo " VALIDANDO REPOSITORIO ECR"
+echo " IMPORTANTE"
 echo "====================================================="
 echo ""
 
-REPO_EXISTS=$(aws ecr describe-repositories \
-  --repository-names $REPOSITORY_NAME \
-  --region $REGION \
-  --query "repositories[0].repositoryName" \
-  --output text 2>/dev/null || true)
+echo "Abrir otra terminal y ejecutar:"
+echo ""
+echo "kubectl get pods -n tienda -w"
+echo ""
 
-if [ "$REPO_EXISTS" == "$REPOSITORY_NAME" ]; then
-
-  echo "Repositorio ECR ya existe"
-
-else
-
-  echo "Creando repositorio ECR..."
-
-  aws ecr create-repository \
-    --repository-name $REPOSITORY_NAME \
-    --region $REGION
-
-fi
+echo "para observar recreacion automatica."
 
 echo ""
 echo "====================================================="
-echo " LOGIN AMAZON ECR"
+echo " ELIMINANDO POD BACKEND"
 echo "====================================================="
 echo ""
 
-aws ecr get-login-password --region $REGION | \
-docker login \
-  --username AWS \
-  --password-stdin \
-  $ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com
+sleep 5
+
+kubectl delete pod $BACKEND_POD -n $NAMESPACE
 
 echo ""
 echo "====================================================="
-echo " BUILD IMAGEN DOCKER"
+echo " ESPERANDO RECREACION"
 echo "====================================================="
 echo ""
 
-docker build -t $REPOSITORY_NAME .
+sleep 15
 
 echo ""
 echo "====================================================="
-echo " VALIDANDO IMAGEN LOCAL"
+echo " VALIDANDO NUEVOS PODS"
 echo "====================================================="
 echo ""
 
-docker images | grep $REPOSITORY_NAME || true
+kubectl get pods -n $NAMESPACE
 
 echo ""
 echo "====================================================="
-echo " CREANDO TAG ECR"
+echo " VALIDANDO DEPLOYMENTS"
 echo "====================================================="
 echo ""
 
-docker tag $REPOSITORY_NAME:latest \
-$ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com/$REPOSITORY_NAME:$IMAGE_TAG
+kubectl get deployment -n $NAMESPACE
 
 echo ""
 echo "====================================================="
-echo " PUSH IMAGEN A ECR"
+echo " VALIDANDO REPLICASETS"
 echo "====================================================="
 echo ""
 
-docker push \
-$ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com/$REPOSITORY_NAME:$IMAGE_TAG
+kubectl get rs -n $NAMESPACE
 
 echo ""
 echo "====================================================="
-echo " VALIDANDO IMAGEN EN ECR"
+echo " VALIDANDO EVENTOS"
 echo "====================================================="
 echo ""
 
-aws ecr list-images \
-  --repository-name $REPOSITORY_NAME \
-  --region $REGION \
-  --output table
+kubectl get events -n $NAMESPACE \
+  --sort-by=.metadata.creationTimestamp
 
 echo ""
 echo "====================================================="
-echo " IMAGEN PUBLICADA CORRECTAMENTE"
+echo " VALIDANDO PODS RUNNING"
 echo "====================================================="
 echo ""
 
-echo "IMAGE URI:"
-echo ""
-echo "$ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com/$REPOSITORY_NAME:$IMAGE_TAG"
+kubectl get pods -n $NAMESPACE \
+  | grep Running || true
 
 echo ""
 echo "====================================================="
-echo " IMPORTANTE PARA KUBERNETES YAML"
+echo " RESULTADO ESPERADO"
 echo "====================================================="
 echo ""
 
-echo "Actualizar mysql-deployment.yaml:"
+echo "Pod eliminado -> nuevo pod creado automaticamente"
+
 echo ""
-echo "image: $ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com/$REPOSITORY_NAME:$IMAGE_TAG"
+echo "====================================================="
+echo " AUTO-HEALING VALIDADO"
+echo "====================================================="
+echo ""
+
+echo "Kubernetes resiliencia automatica operativa"
 
 echo ""
 echo "====================================================="

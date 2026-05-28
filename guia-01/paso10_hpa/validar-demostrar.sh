@@ -2,177 +2,159 @@
 
 set -e
 
-# =====================================================
-# VARIABLES
-# =====================================================
-
-REGION="us-east-1"
-REPOSITORY_NAME="tienda-db"
-IMAGE_TAG="eks-v1"
+NAMESPACE="tienda"
 
 echo ""
 echo "====================================================="
-echo " VALIDANDO AWS CLI"
+echo " VALIDANDO HPA KUBERNETES"
 echo "====================================================="
 echo ""
 
-aws sts get-caller-identity
-
 echo ""
 echo "====================================================="
-echo " OBTENIENDO ACCOUNT ID"
+echo " VALIDANDO METRICS SERVER"
 echo "====================================================="
 echo ""
 
-ACCOUNT_ID=$(aws sts get-caller-identity \
-  --query Account \
-  --output text)
-
-echo "ACCOUNT_ID=$ACCOUNT_ID"
+kubectl get apiservices | grep metrics || true
 
 echo ""
 echo "====================================================="
-echo " VALIDANDO DOCKER"
+echo " VALIDANDO METRICAS NODOS"
 echo "====================================================="
 echo ""
 
-docker --version
+kubectl top nodes || true
 
 echo ""
 echo "====================================================="
-echo " VALIDANDO ARCHIVOS"
+echo " VALIDANDO METRICAS PODS"
 echo "====================================================="
 echo ""
 
-ls -lh
+kubectl top pods -n $NAMESPACE || true
 
 echo ""
 echo "====================================================="
-echo " VALIDANDO DOCKERFILE"
+echo " VALIDANDO HPA EXISTENTES"
 echo "====================================================="
 echo ""
 
-if [ ! -f Dockerfile ]; then
-  echo "ERROR: Dockerfile no encontrado"
-  exit 1
-fi
-
-echo "Dockerfile OK"
+kubectl get hpa -n $NAMESPACE
 
 echo ""
 echo "====================================================="
-echo " VALIDANDO INIT.SQL"
+echo " DETALLE HPA"
 echo "====================================================="
 echo ""
 
-if [ ! -f init.sql ]; then
-  echo "WARNING: init.sql no encontrado"
-else
-  echo "init.sql OK"
-fi
+kubectl describe hpa -n $NAMESPACE
 
 echo ""
 echo "====================================================="
-echo " VALIDANDO REPOSITORIO ECR"
+echo " VALIDANDO DEPLOYMENTS"
 echo "====================================================="
 echo ""
 
-REPO_EXISTS=$(aws ecr describe-repositories \
-  --repository-names $REPOSITORY_NAME \
-  --region $REGION \
-  --query "repositories[0].repositoryName" \
-  --output text 2>/dev/null || true)
-
-if [ "$REPO_EXISTS" == "$REPOSITORY_NAME" ]; then
-
-  echo "Repositorio ECR ya existe"
-
-else
-
-  echo "Creando repositorio ECR..."
-
-  aws ecr create-repository \
-    --repository-name $REPOSITORY_NAME \
-    --region $REGION
-
-fi
+kubectl get deployment -n $NAMESPACE
 
 echo ""
 echo "====================================================="
-echo " LOGIN AMAZON ECR"
+echo " VALIDANDO REPLICAS ACTUALES"
 echo "====================================================="
 echo ""
 
-aws ecr get-login-password --region $REGION | \
-docker login \
-  --username AWS \
-  --password-stdin \
-  $ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com
+kubectl get pods -n $NAMESPACE
 
 echo ""
 echo "====================================================="
-echo " BUILD IMAGEN DOCKER"
+echo " VALIDANDO CPU REQUESTS"
 echo "====================================================="
 echo ""
 
-docker build -t $REPOSITORY_NAME .
+kubectl describe deployment tienda-backend -n $NAMESPACE | grep -A 5 Requests || true
 
 echo ""
 echo "====================================================="
-echo " VALIDANDO IMAGEN LOCAL"
+echo " INICIANDO PRUEBA DE CARGA BACKEND"
 echo "====================================================="
 echo ""
 
-docker images | grep $REPOSITORY_NAME || true
+echo "Se ejecutara trafico HTTP interno durante 2 minutos"
 
 echo ""
 echo "====================================================="
-echo " CREANDO TAG ECR"
+echo " CREANDO POD STRESS"
 echo "====================================================="
 echo ""
 
-docker tag $REPOSITORY_NAME:latest \
-$ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com/$REPOSITORY_NAME:$IMAGE_TAG
+kubectl run hpa-test \
+  --rm -it \
+  --image=busybox \
+  --restart=Never \
+  -n $NAMESPACE \
+  -- /bin/sh -c \
+  "while true; do wget -q -O- http://tienda-backend:3001; done"
 
 echo ""
 echo "====================================================="
-echo " PUSH IMAGEN A ECR"
+echo " VALIDAR ESCALAMIENTO EN OTRA TERMINAL"
 echo "====================================================="
 echo ""
 
-docker push \
-$ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com/$REPOSITORY_NAME:$IMAGE_TAG
+echo "kubectl get hpa -n tienda -w"
+
+echo ""
+echo "y tambien:"
+echo ""
+
+echo "kubectl get pods -n tienda -w"
 
 echo ""
 echo "====================================================="
-echo " VALIDANDO IMAGEN EN ECR"
+echo " RESULTADO ESPERADO"
 echo "====================================================="
 echo ""
 
-aws ecr list-images \
-  --repository-name $REPOSITORY_NAME \
-  --region $REGION \
-  --output table
+echo "backend:"
+echo "2 pods -> 3 -> 4 -> 5"
+
+echo ""
+echo "frontend:"
+echo "2 pods -> 3 -> 4"
 
 echo ""
 echo "====================================================="
-echo " IMAGEN PUBLICADA CORRECTAMENTE"
+echo " VALIDACION FINAL"
 echo "====================================================="
 echo ""
 
-echo "IMAGE URI:"
-echo ""
-echo "$ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com/$REPOSITORY_NAME:$IMAGE_TAG"
+kubectl get hpa -n $NAMESPACE
 
 echo ""
 echo "====================================================="
-echo " IMPORTANTE PARA KUBERNETES YAML"
+echo " VALIDANDO PODS FINALES"
 echo "====================================================="
 echo ""
 
-echo "Actualizar mysql-deployment.yaml:"
+kubectl get pods -n $NAMESPACE
+
 echo ""
-echo "image: $ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com/$REPOSITORY_NAME:$IMAGE_TAG"
+echo "====================================================="
+echo " VALIDANDO EVENTOS KUBERNETES"
+echo "====================================================="
+echo ""
+
+kubectl get events -n $NAMESPACE \
+  --sort-by=.metadata.creationTimestamp || true
+
+echo ""
+echo "====================================================="
+echo " HPA VALIDADO"
+echo "====================================================="
+echo ""
+
+echo "Kubernetes escalamiento automatico operativo"
 
 echo ""
 echo "====================================================="

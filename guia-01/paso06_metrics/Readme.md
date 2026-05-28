@@ -1,6 +1,5 @@
 6. Metrics Server
 
-
 # PASO 6 — Instalar y validar Metrics Server en Amazon EKS
 
 ## Objetivo
@@ -18,6 +17,12 @@ Estas métricas son fundamentales para:
 * monitoreo Kubernetes
 * escalamiento automático
 * observabilidad básica
+
+## Ejecutar
+
+```
+bash configurar-validar.sh
+```
 
 ---
 

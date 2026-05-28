@@ -11,6 +11,13 @@ Validar que las subnets de la VPC se encuentren correctamente configuradas y eti
 
 ---
 
+
+# Ejecutar
+
+```
+bash paso04_valida.sh
+```
+
 # ¿Por qué es importante este paso?
 
 Kubernetes en AWS necesita identificar automáticamente qué subnets utilizar dependiendo del tipo de servicio desplegado.

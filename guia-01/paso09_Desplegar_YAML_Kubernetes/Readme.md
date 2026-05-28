@@ -12,6 +12,23 @@ La aplicación está compuesta por:
 | backend  | API                 |
 | frontend | interfaz web        |
 
+
+
+# Ip y prueba web
+
+
+```
+kubectl get svc -n tienda
+```
+
+```
+nslookup a2c5233254c024304924653902372780-767068195.us-east-1.elb.amazonaws.com
+```
+
+```
+dig a2c5233254c024304924653902372780-767068195.us-east-1.elb.amazonaws.com
+```
+
 ---
 
 # ¿Qué se realiza en este paso?
