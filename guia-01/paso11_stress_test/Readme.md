@@ -18,10 +18,10 @@ Un Stress Test consiste en someter una aplicación a carga elevada para observar
 
 En Kubernetes esto permite validar:
 
-| Validación     | Resultado esperado      |
+| Validación    | Resultado esperado      |
 | -------------- | ----------------------- |
 | HPA            | escala pods             |
-| Metrics Server | entrega métricas        |
+| Metrics Server | entrega métricas       |
 | Deployments    | crean replicas          |
 | Scheduler      | distribuye carga        |
 | EKS            | mantiene disponibilidad |
@@ -136,13 +136,13 @@ Antes de ejecutar el stress test debe existir:
 
 | Requisito      | Estado |
 | -------------- | ------ |
-| EKS            | ✅      |
-| Frontend       | ✅      |
-| Backend        | ✅      |
-| MySQL          | ✅      |
-| Metrics Server | ✅      |
-| HPA            | ✅      |
-| LoadBalancer   | ✅      |
+| EKS            | ✅     |
+| Frontend       | ✅     |
+| Backend        | ✅     |
+| MySQL          | ✅     |
+| Metrics Server | ✅     |
+| HPA            | ✅     |
+| LoadBalancer   | ✅     |
 
 ---
 
@@ -249,13 +249,13 @@ CURRENT CPU:
 
 | Componente           | Validado |
 | -------------------- | -------- |
-| HPA                  | ✅        |
-| Metrics Server       | ✅        |
-| Kubernetes Scheduler | ✅        |
-| ReplicaSet           | ✅        |
-| Deployments          | ✅        |
-| Auto Scaling         | ✅        |
-| Elasticidad Cloud    | ✅        |
+| HPA                  | ✅       |
+| Metrics Server       | ✅       |
+| Kubernetes Scheduler | ✅       |
+| ReplicaSet           | ✅       |
+| Deployments          | ✅       |
+| Auto Scaling         | ✅       |
+| Elasticidad Cloud    | ✅       |
 
 ---
 
@@ -309,5 +309,36 @@ donde se validará:
 * recuperación automática
 * recreación pods
 * resiliencia Kubernetes
+
+# Parar la prueba
+
+Abrir otra terminal y ejecutar docker
+
+cd paso00_dockerLinux
+docker run -it -v "..":/root/work -v ~/.aws:/root/.aws  -v /var/run/docker.sock:/var/run/docker.sock devops-eks-lab
+
+
+## Vuelve a configurar kubeconfig:
+
+```
+aws eks update-kubeconfig \
+  --region us-east-1 \
+  --name laboratorio-eks
+```
+
+# Luego valida:
+
+```
+kubectl get nodes
+```
+
+# Y recién después:
+
+```
+kubectl delete pod hpa-test -n tienda
+```
+
+
+
 
 ---
