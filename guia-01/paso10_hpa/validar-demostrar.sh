@@ -72,7 +72,16 @@ echo " VALIDANDO CPU REQUESTS"
 echo "====================================================="
 echo ""
 
-kubectl describe deployment tienda-backend -n $NAMESPACE | grep -A 5 Requests || true
+kubectl describe deployment tienda-backend -n $NAMESPACE \
+  | grep -A 5 Requests || true
+
+echo ""
+echo "====================================================="
+echo " ELIMINANDO POD STRESS ANTERIOR"
+echo "====================================================="
+echo ""
+
+kubectl delete pod hpa-test -n $NAMESPACE --ignore-not-found=true
 
 echo ""
 echo "====================================================="
@@ -80,7 +89,8 @@ echo " INICIANDO PRUEBA DE CARGA BACKEND"
 echo "====================================================="
 echo ""
 
-echo "Se ejecutara trafico HTTP interno durante 2 minutos"
+echo "Se generara trafico HTTP continuo"
+echo "contra tienda-backend."
 
 echo ""
 echo "====================================================="
@@ -89,7 +99,6 @@ echo "====================================================="
 echo ""
 
 kubectl run hpa-test \
-  --rm -it \
   --image=busybox \
   --restart=Never \
   -n $NAMESPACE \
@@ -98,17 +107,39 @@ kubectl run hpa-test \
 
 echo ""
 echo "====================================================="
-echo " VALIDAR ESCALAMIENTO EN OTRA TERMINAL"
+echo " VALIDANDO POD STRESS"
 echo "====================================================="
 echo ""
 
+kubectl get pod hpa-test -n $NAMESPACE
+
+echo ""
+echo "====================================================="
+echo " IMPORTANTE"
+echo "====================================================="
+echo ""
+
+echo "Abrir otra terminal y monitorear:"
+echo ""
+
+echo "HPA:"
 echo "kubectl get hpa -n tienda -w"
 
 echo ""
-echo "y tambien:"
+echo "Pods:"
+echo "kubectl get pods -n tienda -w"
+
+echo ""
+echo "CPU:"
+echo "kubectl top pods -n tienda"
+
+echo ""
+echo "====================================================="
+echo " ESPERAR 2-5 MINUTOS"
+echo "====================================================="
 echo ""
 
-echo "kubectl get pods -n tienda -w"
+echo "El HPA deberia aumentar replicas automaticamente."
 
 echo ""
 echo "====================================================="
@@ -141,12 +172,31 @@ kubectl get pods -n $NAMESPACE
 
 echo ""
 echo "====================================================="
+echo " VALIDANDO POD STRESS"
+echo "====================================================="
+echo ""
+
+kubectl logs -n $NAMESPACE hpa-test --tail=20 || true
+
+echo ""
+echo "====================================================="
 echo " VALIDANDO EVENTOS KUBERNETES"
 echo "====================================================="
 echo ""
 
 kubectl get events -n $NAMESPACE \
   --sort-by=.metadata.creationTimestamp || true
+
+echo ""
+echo "====================================================="
+echo " FINALIZAR STRESS TEST"
+echo "====================================================="
+echo ""
+
+echo "Para detener la prueba:"
+echo ""
+
+echo "kubectl delete pod hpa-test -n tienda"
 
 echo ""
 echo "====================================================="
