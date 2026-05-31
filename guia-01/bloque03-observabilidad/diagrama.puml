@@ -1,0 +1,118 @@
+@startuml Bloque3_Observabilidad
+' ==================================================================
+' Bloque 3 — Observabilidad
+' paso06: Metrics Server → kubectl top + prepara HPA
+' paso07: CloudWatch Logs del Control Plane
+' ==================================================================
+
+!include <awslib/AWSCommon>
+
+!include <awslib/Groups/AWSCloud>
+!include <awslib/Groups/VPC>
+!include <awslib/Groups/AvailabilityZone>
+!include <awslib/Groups/PrivateSubnet>
+
+!include <awslib/Compute/EC2Instance>
+!include <awslib/ManagementGovernance/CloudWatch>
+
+hide stereotype
+skinparam linetype ortho
+
+title **Bloque 3 — Observabilidad**\n(paso06) Metrics Server + (paso07) CloudWatch Logs
+
+' ==================================================================
+' REGION AWS
+' ==================================================================
+AWSCloudGroup(cloud) {
+
+  VPCGroup(vpc, "VPC: laboratorio-vpc  10.0.0.0/16") {
+
+    AvailabilityZoneGroup(az_a, "us-east-1a") {
+      PrivateSubnetGroup(app_a, "private-app-a  10.0.11.0/24") {
+        EC2Instance(node1, "Worker Node 1", "t3.large SPOT")
+      }
+    }
+
+    AvailabilityZoneGroup(az_b, "us-east-1b") {
+      PrivateSubnetGroup(app_b, "private-app-b  10.0.12.0/24") {
+        EC2Instance(node2, "Worker Node 2", "t3.large SPOT")
+      }
+    }
+
+  }
+
+  ' ==================================================================
+  ' Paso 06 — Metrics Server
+  ' ==================================================================
+  rectangle "  Paso 06 — Metrics Server" as METRICS_PKG #569A31 {
+
+    rectangle "  kubelet (cAdvisor)\n  en cada Worker Node\n  expone CPU + Memoria" as KUBELET #569A31
+
+    rectangle "  **Metrics Server**\n  agregador liviano\n  recolecta cada 15s\n  no almacena historico" as METRICS_SRV #569A31
+
+    rectangle "  **metrics.k8s.io**\n  API de metricas de K8s\n  Sin esto:\n   kubectl top → error\n   HPA → no escala" as METRICS_API #569A31
+  }
+
+  ' ==================================================================
+  ' Paso 07 — CloudWatch Logs
+  ' ==================================================================
+  rectangle "  Paso 07 — CloudWatch Logs" as CW_PKG #FF9900 {
+
+    rectangle "  EKS Control Plane\n  logs habilitados:\n  api · audit · authenticator\n  controllerManager · scheduler" as CP_LOGS #232F3E
+
+    CloudWatch(cw, "Amazon CloudWatch\nLog Group:\n/aws/eks/laboratorio-eks/cluster\n\nLog Streams:\nkube-apiserver\nauthenticator\nscheduler\ncontrollerManager\naudit", "")
+
+  }
+
+  ' ==================================================================
+  ' VPC Endpoint (del Bloque 1)
+  ' ==================================================================
+  rectangle "  VPC Endpoint — CloudWatch Logs\n  (com.amazonaws.*.logs)\n  trafico privado, sin internet" as VPCE_LOGS #569A31
+
+  ' ==================================================================
+  ' Herramientas de consulta
+  ' ==================================================================
+  rectangle "  Comandos de observabilidad\n══════════════════════════\nkubectl top nodes\nkubectl top pods -A\nkubectl get hpa -n tienda" as TOOLS #1A476F
+
+}
+
+' ==================================================================
+' NOTA: dependencia con Bloque 5
+' ==================================================================
+note right of METRICS_API
+  **IMPORTANTE para Bloque 5**
+  ═══════════════════════════
+  Sin Metrics Server funcionando:
+  • kubectl top → error
+  • HPA → no puede escalar
+  • kubectl get hpa → <unknown>
+
+  El HPA consulta metrics.k8s.io
+  cada 15 segundos para decidir
+  si crea o destruye Pods.
+end note
+
+' ==================================================================
+' CONEXIONES — Paso 06: Metrics Server
+' ==================================================================
+node1 -[#blue]-> KUBELET : "cAdvisor"
+node2 -[#blue]-> KUBELET
+
+KUBELET -[#blue]-> METRICS_SRV : "recolecta\ncada 15s"
+METRICS_SRV -[#blue]-> METRICS_API : "registra API"
+METRICS_API -[#blue]-> TOOLS : "kubectl top"
+
+' ==================================================================
+' CONEXIONES — Paso 07: CloudWatch
+' ==================================================================
+CP_LOGS -[#green]-> VPCE_LOGS : "HTTPS :443\nprivado"
+VPCE_LOGS -[#green]-> cw
+
+note bottom of cw
+  **Acceso en consola AWS:**
+  CloudWatch → Log groups →
+  /aws/eks/laboratorio-eks/cluster
+end note
+
+footer **Bloque 3 completado**  kubectl top funciona + Logs en CloudWatch  HPA tendra datos para escalar\nEste bloque se cursa en paralelo con Bloque 4 (Aplicacion)
+@enduml

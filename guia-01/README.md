@@ -17,22 +17,44 @@ Este repositorio contiene una secuencia educativa paso a paso (paso00 a paso13) 
 
 ## Tabla de pasos y objetivos
 
-| Paso   | Carpeta                           |                                                         Objetivo principal |
-| ------ | --------------------------------- | -------------------------------------------------------------------------: |
-| paso00 | paso00_dockerLinux/               |              Preparar entorno local: Docker y Linux herramientas básicas. |
-| paso01 | paso01_iam-vpc/                   |                           Configurar IAM y VPC: roles, políticas y redes. |
-| paso02 | paso02_eks/                       |                                                 Crear cluster EKS básico. |
-| paso03 | paso03_node-group/                |             Añadir NodeGroups (Grupos de nodos) y gestionar worker nodes. |
-| paso04 | paso04_subnets/                   |                           Configurar subnets y topología de red para EKS. |
-| paso05 | paso05_adm_cluster/               |                           Configurar accesos administrativos y kubeconfig. |
-| paso06 | paso06_metrics/                   | Instalar métricas y stack de observabilidad (metrics-server, Prometheus). |
-| paso07 | paso07_cloudWatch/                |                       Integrar CloudWatch para logs y métricas centrales. |
-| paso08 | paso08_ecr/                       |                              Construir y publicar imágenes en Amazon ECR. |
-| paso09 | paso09_Desplegar_YAML_Kubernetes/ |                               Desplegar aplicaciones usando manifest YAML. |
-| paso10 | paso10_hpa/                       |                               Implementar Horizontal Pod Autoscaler (HPA). |
-| paso11 | paso11_stress_test/               |               Ejecutar pruebas de carga/estrés y observar comportamiento. |
-| paso12 | paso12_healing/                   |                 Practicar auto-healing: fallos y recuperación (Pod/Node). |
-| paso13 | paso13_metricas/                  |                             Analizar métricas y crear dashboards/alertas. |
+### Bloque 1 — Infraestructura Base
+
+| Paso   | Carpeta                                               |                                                         Objetivo principal |
+| ------ | ----------------------------------------------------- | -------------------------------------------------------------------------: |
+| paso00 | bloque01-infraestructuraBase/paso00_dockerLinux/      |              Preparar entorno local: Docker y Linux herramientas básicas. |
+| paso01 | bloque01-infraestructuraBase/paso01_iam-vpc/          |                           Configurar IAM y VPC: roles, políticas y redes. |
+| paso02 | bloque01-infraestructuraBase/paso02_subnets/          |             Validar tags EKS en subnets para LoadBalancers automáticos. |
+
+### Bloque 2 — Cluster Kubernetes
+
+| Paso   | Carpeta                                               |                                                         Objetivo principal |
+| ------ | ----------------------------------------------------- | -------------------------------------------------------------------------: |
+| paso03 | bloque02-clusterKubernetes/paso03_eks/                |                                                 Crear cluster EKS básico. |
+| paso04 | bloque02-clusterKubernetes/paso04_adm_cluster/        |                           Conectar kubectl al cluster y validar acceso. |
+| paso05 | bloque02-clusterKubernetes/paso05_node-group/         |             Añadir NodeGroups (Grupos de nodos) y gestionar worker nodes. |
+
+### Bloque 3 — Observabilidad
+
+| Paso   | Carpeta                                               |                                                         Objetivo principal |
+| ------ | ----------------------------------------------------- | -------------------------------------------------------------------------: |
+| paso06 | bloque03-observabilidad/paso06_metrics/               | Instalar métricas y stack de observabilidad (metrics-server, Prometheus). |
+| paso07 | bloque03-observabilidad/paso07_cloudWatch/            |                       Integrar CloudWatch para logs y métricas centrales. |
+
+### Bloque 4 — Aplicación
+
+| Paso   | Carpeta                                               |                                                         Objetivo principal |
+| ------ | ----------------------------------------------------- | -------------------------------------------------------------------------: |
+| paso08 | bloque04-aplicacion/paso08_ecr/                       |                              Construir y publicar imágenes en Amazon ECR. |
+| paso09 | bloque04-aplicacion/paso09_Desplegar_YAML_Kubernetes/ |                               Desplegar aplicaciones usando manifest YAML. |
+
+### Bloque 5 — Operación Avanzada
+
+| Paso   | Carpeta                                               |                                                         Objetivo principal |
+| ------ | ----------------------------------------------------- | -------------------------------------------------------------------------: |
+| paso10 | bloque05-operacionAvanzada/paso10_hpa/                |                               Implementar Horizontal Pod Autoscaler (HPA). |
+| paso11 | bloque05-operacionAvanzada/paso11_stress_test/        |               Ejecutar pruebas de carga/estrés y observar comportamiento. |
+| paso12 | bloque05-operacionAvanzada/paso12_healing/            |                 Practicar auto-healing: fallos y recuperación (Pod/Node). |
+| paso13 | bloque05-operacionAvanzada/paso13_metricas/           |                             Analizar métricas y crear dashboards/alertas. |
 
 ---
 
@@ -46,24 +68,35 @@ Este repositorio contiene una secuencia educativa paso a paso (paso00 a paso13) 
 
 ---
 
-## Flujo general (diagrama MerMaid)
+## Flujo general (diagrama Mermaid)
 
 ```mermaid
 flowchart LR
-  A[paso00: Entorno] --> B[paso01: IAM & VPC]
-  B --> C[paso02: EKS Cluster]
-  C --> D[paso03: NodeGroups]
-  D --> E[paso04: Subnets]
-  E --> F[paso05: Admin & kubeconfig]
-  F --> G[paso08: ECR & CI]
-  F --> H[paso09: Deploy YAML]
-  H --> I[paso10: HPA]
-  I --> J[paso11: Stress тест]
-  J --> K[paso12: Healing]
-  G --> H
-  F --> L[paso06: Metrics]
-  L --> M[paso07: CloudWatch]
-  M --> N[paso13: Dashboards & Alerts]
+  subgraph B1[Bloque 1: Infraestructura Base]
+    A[paso00: Entorno] --> B[paso01: IAM & VPC]
+    B --> C[paso02: Validar Subnets]
+  end
+  subgraph B2[Bloque 2: Cluster Kubernetes]
+    C --> D[paso03: EKS Cluster]
+    D --> E[paso04: kubectl]
+    E --> F[paso05: NodeGroups]
+  end
+  subgraph B3[Bloque 3: Observabilidad]
+    F --> G[paso06: Metrics Server]
+    G --> H[paso07: CloudWatch]
+  end
+  subgraph B4[Bloque 4: Aplicación]
+    F --> I[paso08: ECR]
+    I --> J[paso09: Deploy YAML]
+  end
+  subgraph B5[Bloque 5: Operación Avanzada]
+    J --> K[paso10: HPA]
+    H --> K
+    K --> L[paso11: Stress Test]
+    L --> M[paso12: Auto-Healing]
+    M --> N[paso13: Métricas]
+    H --> N
+  end
 ```
 
 ---
@@ -146,7 +179,45 @@ Preguntas:
 
 ---
 
-## Paso 02 — Crear cluster EKS
+## Paso 02 — Validar Subnets para EKS
+
+Objetivo: Validar que las subnets tengan los tags necesarios para que EKS pueda crear LoadBalancers automáticamente.
+
+Diagrama:
+
+```mermaid
+flowchart LR
+  VPC --> PrivateSubnet
+  VPC --> PublicSubnet
+  PrivateSubnet --> EKS
+  PublicSubnet --> ELB[Load Balancer]
+```
+
+Tags requeridos:
+
+- `kubernetes.io/role/elb = 1` en subnets públicas
+- `kubernetes.io/role/internal-elb = 1` en subnets privadas  
+- `kubernetes.io/cluster/nombre-eks = shared` en todas
+
+Comandos clave:
+
+- aws ec2 describe-subnets --query "Subnets[*].[SubnetId,Tags]"
+- Validar que los tags existen ANTES de crear el cluster
+
+Ejercicio práctico: Ejecutar script de validación y corregir tags si faltan.
+
+Checkpoints:
+
+- Tags EKS presentes en todas las subnets
+- Subnets listas para LoadBalancers automáticos
+
+Preguntas:
+
+- ¿Qué pasa si los tags no existen al crear un Service tipo LoadBalancer?
+
+---
+
+## Paso 03 — Crear cluster EKS
 
 Objetivo: Provisionar cluster EKS mínimo funcional y validar acceso.
 
@@ -173,7 +244,29 @@ Checkpoints:
 
 ---
 
-## Paso 03 — NodeGroups
+## Paso 04 — Conectar kubectl al cluster
+
+Objetivo: Configurar kubeconfig, validar acceso administrativo y entender RBAC básico.
+
+Diagrama:
+
+```mermaid
+flowchart LR
+  AdminUser --> Kubeconfig --> RBAC --> KubernetesAPI
+```
+
+Comandos: aws eks update-kubeconfig, kubectl config get-contexts, kubectl get nodes -o wide.
+
+Ejercicio: Conectar kubectl, verificar nodos y explorar namespaces del cluster.
+
+Checkpoints:
+
+- kubectl conectado correctamente al cluster
+- kubectl get nodes muestra nodos Ready
+
+---
+
+## Paso 05 — NodeGroups
 
 Objetivo: Añadir y gestionar NodeGroups, entender tipos de instancias.
 
@@ -195,51 +288,6 @@ Ejercicio: Crear un nodegroup Spot y uno On-demand; desplazar pods entre grupos.
 Checkpoints:
 
 - pods circulan correctamente al drenar nodos
-
----
-
-## Paso 04 — Subnets y Networking
-
-Objetivo: Configurar subnets, routing y security groups.
-
-Diagrama:
-
-```mermaid
-flowchart LR
-  VPC --> PrivateSubnet
-  VPC --> PublicSubnet
-  PrivateSubnet --> EKS
-  PublicSubnet --> NAT
-```
-
-Comandos: crear tablas de rutas, NAT Gateway, revisar SG.
-
-Ejercicio: Bloquear acceso directo a pods desde Internet y exponer servicio vía LoadBalancer.
-
-Checkpoints:
-
-- Servicio LoadBalancer accesible y pods no expuestos directamente
-
----
-
-## Paso 05 — Administración del cluster
-
-Objetivo: Gestionar kubeconfig, RBAC y accesos administrativos.
-
-Diagrama:
-
-```mermaid
-flowchart LR
-  AdminUser --> Kubeconfig --> RBAC --> KubernetesAPI
-```
-
-Comandos: kubectl config, kubectl create clusterrolebinding, aws-auth configmap edit.
-
-Ejercicio: Crear usuario con role limitado y validar permisos.
-
-Checkpoints:
-
-- Usuario limitado no puede eliminar recursos críticos
 
 ---
 

@@ -1,0 +1,148 @@
+@startuml Bloque4_Aplicacion
+' ==================================================================
+' Bloque 4 — Aplicacion
+' paso08: Construir imagenes Docker y publicar en Amazon ECR
+' paso09: Desplegar con manifiestos YAML en Kubernetes
+' ==================================================================
+
+!include <awslib/AWSCommon>
+
+!include <awslib/Groups/AWSCloud>
+
+!include <awslib/Containers/ElasticContainerRegistry>
+!include <awslib/Containers/ElasticKubernetesService>
+!include <awslib/NetworkingContentDelivery/ElasticLoadBalancing>
+
+hide stereotype
+skinparam linetype ortho
+
+title **Bloque 4 — Aplicacion**\n(paso08) Publicar imagenes en Amazon ECR + (paso09) Desplegar con YAML en Kubernetes
+
+' ==================================================================
+' PIPELINE DE CONSTRUCCION (local) — paso08
+' ==================================================================
+rectangle "  Pipeline Docker (paso08)\n══════════════════════\n1. docker build -t tienda-*:eks-v1\n2. docker tag <account>.dkr.ecr...\n3. docker push a Amazon ECR" as BUILD #2496ED
+
+' ==================================================================
+' REGION AWS
+' ==================================================================
+AWSCloudGroup(cloud) {
+
+  ' ==================================================================
+  ' Amazon ECR — paso08
+  ' ==================================================================
+  rectangle "  Amazon ECR — paso08" as ECR_OUTER #FF9900 {
+    ElasticContainerRegistry(ecr_db, "tienda-db", "MySQL 8 + init.sql")
+    ElasticContainerRegistry(ecr_back, "tienda-backend", "Node.js API :3000")
+    ElasticContainerRegistry(ecr_front, "tienda-frontend", "Nginx + app.js :80")
+  }
+
+  ' ==================================================================
+  ' EKS Cluster — paso09
+  ' ==================================================================
+  rectangle "  Amazon EKS — laboratorio-eks\n  Namespace: tienda — paso09" as EKS_OUTER #1A476F {
+
+    ElasticKubernetesService(eks, "EKS Cluster", "laboratorio-eks")
+
+    ' --- CAPA 1: Database (se despliega 1) ---
+    rectangle "  1  CAPA 1 — MySQL DB" as CAPA_DB #569A31 {
+      rectangle "  Secret: mysql-secret\n  (password base64)" as DB_SECRET #7D8998
+      rectangle "  Deployment: tienda-db\n  replicas: 1" as DB_DEPLOY #569A31
+      rectangle "  Service: mysql-service\n  ClusterIP :3306" as DB_SVC #569A31
+      rectangle "  **Pod MySQL**\n  tienda-db-xxxxx\n  MySQL 8 + init.sql" as DB_POD #569A31
+    }
+
+    ' --- CAPA 2: Backend (se despliega 2) ---
+    rectangle "  2  CAPA 2 — Backend API" as CAPA_BACK #1A476F {
+      rectangle "  Deployment: tienda-backend\n  replicas: 2+" as BACK_DEPLOY #1A476F
+      rectangle "  Service: backend-service\n  ClusterIP :3000" as BACK_SVC #1A476F
+      rectangle "  **HPA backend**\n  min:2 max:5 CPU:70%" as BACK_HPA #8C4FFF
+      rectangle "  **Pod Backend**\n  tienda-backend-xxxxx" as BACK_POD1 #1A476F
+      rectangle "  **Pod Backend**\n  tienda-backend-yyyyy" as BACK_POD2 #1A476F
+    }
+
+    ' --- CAPA 3: Frontend (se despliega 3) ---
+    rectangle "  3  CAPA 3 — Frontend Web" as CAPA_FRONT #FF9900 {
+      rectangle "  Deployment: tienda-frontend\n  replicas: 2+" as FRONT_DEPLOY #FF9900
+      rectangle "  Service: frontend-service\n  LoadBalancer :80" as FRONT_SVC #FF9900
+      rectangle "  **HPA frontend**\n  min:2 max:5 CPU:70%" as FRONT_HPA #8C4FFF
+      rectangle "  **Pod Frontend**\n  tienda-frontend-xxxxx" as FRONT_POD1 #FF9900
+      rectangle "  **Pod Frontend**\n  tienda-frontend-yyyyy" as FRONT_POD2 #FF9900
+    }
+
+  }
+
+  ' ==================================================================
+  ' AWS ELB (creado automaticamente)
+  ' ==================================================================
+  ElasticLoadBalancing(elb, "AWS Application\nLoad Balancer", "*.elb.amazonaws.com")
+
+}
+
+' ==================================================================
+' USUARIO
+' ==================================================================
+actor "Usuario" as USER
+
+' ==================================================================
+' CONEXIONES — paso08: Pipeline
+' ==================================================================
+BUILD -down-> cloud : "docker push"
+BUILD -[#blue]-> ecr_db
+BUILD -[#blue]-> ecr_back
+BUILD -[#blue]-> ecr_front
+
+' ==================================================================
+' CONEXIONES — paso09: Despliegue
+' ==================================================================
+
+' ECR → Deployments
+ecr_db -[#blue]-> DB_DEPLOY : "pull image"
+ecr_back -[#blue]-> BACK_DEPLOY : "pull image"
+ecr_front -[#blue]-> FRONT_DEPLOY : "pull image"
+
+' CAPA 1: DB
+DB_DEPLOY -[#blue]-> DB_POD
+DB_SECRET -[#blue]-> DB_POD : "inyecta password"
+DB_POD -[#blue]-> DB_SVC
+
+' CAPA 2: Backend
+DB_SVC -[#blue]-> BACK_POD1 : "MySQL :3306"
+DB_SVC -[#blue]-> BACK_POD2
+BACK_DEPLOY -[#blue]-> BACK_POD1
+BACK_DEPLOY -[#blue]-> BACK_POD2
+BACK_POD1 -[#blue]-> BACK_SVC
+BACK_POD2 -[#blue]-> BACK_SVC
+BACK_HPA -[#purple]-> BACK_DEPLOY : "controla escalado"
+
+' CAPA 3: Frontend
+BACK_SVC -[#blue]-> FRONT_POD1 : "API :3000"
+BACK_SVC -[#blue]-> FRONT_POD2
+FRONT_DEPLOY -[#blue]-> FRONT_POD1
+FRONT_DEPLOY -[#blue]-> FRONT_POD2
+FRONT_POD1 -[#blue]-> FRONT_SVC
+FRONT_POD2 -[#blue]-> FRONT_SVC
+FRONT_HPA -[#purple]-> FRONT_DEPLOY : "controla escalado"
+
+' LoadBalancer → Usuario
+FRONT_SVC -[#blue]-> elb : "provisiona"
+elb -[#blue]-> USER : "HTTP :80"
+
+' ==================================================================
+' NOTA: Orden de despliegue
+' ==================================================================
+note right of CAPA_DB
+  **ORDEN DE DESPLIEGUE**
+  ══════════════════════
+  1  MySQL (sin DB no hay backend)
+  2  Backend (sin API no hay frontend)
+  3  Frontend (cara visible)
+
+  **Scripts:**
+  • k8s-Db.sh → DB
+  • k8s-Backend.sh → Backend
+  • k8s-Frontend.sh → Frontend
+end note
+
+footer **Bloque 4 completado**  App 3-capas desplegada en EKS  MySQL → Backend → Frontend + LoadBalancer + HPA
+@enduml

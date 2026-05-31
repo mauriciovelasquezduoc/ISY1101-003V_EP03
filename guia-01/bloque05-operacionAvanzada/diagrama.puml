@@ -1,0 +1,183 @@
+@startuml Bloque5_OperacionAvanzada
+' ==================================================================
+' Bloque 5 — Operacion Avanzada
+' paso10: HPA en accion
+' paso11: Stress Test
+' paso12: Auto-Healing
+' paso13: Metricas y Dashboards
+' ==================================================================
+
+!include <awslib/AWSCommon>
+
+!include <awslib/Groups/AWSCloud>
+
+!include <awslib/Containers/ElasticKubernetesService>
+!include <awslib/NetworkingContentDelivery/ElasticLoadBalancing>
+!include <awslib/ManagementGovernance/CloudWatch>
+
+hide stereotype
+skinparam linetype ortho
+
+title **Bloque 5 — Operacion Avanzada**\n(paso10) HPA + (paso11) Stress Test + (paso12) Auto-Healing + (paso13) Metricas
+
+' ==================================================================
+' REGION AWS
+' ==================================================================
+AWSCloudGroup(cloud) {
+
+  ' ==================================================================
+  ' AWS ELB
+  ' ==================================================================
+  ElasticLoadBalancing(elb, "AWS Application\nLoad Balancer", "*.elb.amazonaws.com")
+
+  ' ==================================================================
+  ' EKS Cluster
+  ' ==================================================================
+  rectangle "  Amazon EKS — laboratorio-eks\n  Namespace: tienda" as EKS_OUTER #1A476F {
+
+    ElasticKubernetesService(eks, "EKS Cluster", "laboratorio-eks")
+
+    ' --- Frontend ---
+    rectangle "  Frontend (Nginx + JS)" as FRONT_PKG #FF9900 {
+      rectangle "  **HPA frontend**\n  min:2 max:5 CPU:70%" as FR_HPA #8C4FFF
+      rectangle "  Pod: tienda-frontend-xxxxx" as FR_POD1 #FF9900
+      rectangle "  Pod: tienda-frontend-yyyyy" as FR_POD2 #FF9900
+    }
+
+    ' --- Backend ---
+    rectangle "  Backend (Node.js API)" as BACK_PKG #1A476F {
+      rectangle "  **HPA backend**\n  min:2 max:5 CPU:70%" as BK_HPA #8C4FFF
+      rectangle "  Pod: tienda-backend-xxxxx" as BK_POD1 #1A476F
+      rectangle "  Pod: tienda-backend-yyyyy" as BK_POD2 #1A476F
+    }
+
+    ' --- DB ---
+    rectangle "  MySQL DB" as DB_PKG #569A31 {
+      rectangle "  Pod: tienda-db-xxxxx" as DB_POD #569A31
+    }
+
+    ' --- Metrics Server ---
+    rectangle "  **Metrics Server**\n  (metrics.k8s.io)\n  CPU y Mem de todos los Pods\n  HPA consulta cada 15s" as METRICS_SRV #569A31
+
+    ' --- ReplicaSet Controller ---
+    rectangle "  **ReplicaSet Controller**\n  vigila: desired == actual\n  si Pod muere → crea uno nuevo\n  responsable del auto-healing" as RS_CTRL #DD344C
+
+  }
+
+  ' ==================================================================
+  ' CloudWatch — paso13
+  ' ==================================================================
+  CloudWatch(cw, "Amazon CloudWatch\nDashboard EKS\nCPU · Mem · Red · Pods\n\nAlarmas:\nlatencia > 500ms x 5min\n→ SNS / Email", "")
+
+}
+
+' ==================================================================
+' USUARIO Y HERRAMIENTAS
+' ==================================================================
+actor "Usuario" as USER
+
+' --- Paso 11: Stress Test ---
+rectangle "  Paso 11 — Stress Test\n══════════════════════\nScript de carga (hey/Node.js)\n-z 30s -c 50 -q 10\n\nGenera trafico HTTP\ncontra el LoadBalancer" as STRESS #DD344C
+
+' --- Paso 12: Auto-Healing ---
+rectangle "  Paso 12 — Auto-Healing\n══════════════════════\nkubectl delete pod tienda-backend-xxxxx\nkubectl drain node\nCrashLoopBackOff\n\nSimula fallos para ver\ncomo K8s recupera solo" as HEALING #DD344C
+
+' --- Paso 13: Monitoreo ---
+rectangle "  Paso 13 — Monitoreo\n══════════════════════\nkubectl top nodes\nkubectl top pods -A\nK9s (terminal UI live view)" as MONITOR #569A31
+
+' ==================================================================
+' CONEXIONES — Aplicacion
+' ==================================================================
+USER -[#blue]-> elb : "HTTP :80"
+elb -[#blue]-> FR_POD1
+elb -[#blue]-> FR_POD2
+
+FR_POD1 -[#blue]-> BK_POD1 : "API :3000"
+FR_POD1 -[#blue]-> BK_POD2
+FR_POD2 -[#blue]-> BK_POD1
+FR_POD2 -[#blue]-> BK_POD2
+
+BK_POD1 -[#blue]-> DB_POD : "MySQL :3306"
+BK_POD2 -[#blue]-> DB_POD
+
+' HPA → Deployments
+FR_HPA -[#purple]-> FR_POD1 : "escala"
+FR_HPA -[#purple]-> FR_POD2
+BK_HPA -[#purple]-> BK_POD1 : "escala"
+BK_HPA -[#purple]-> BK_POD2
+
+' Metrics → HPA
+METRICS_SRV -[#green]-> FR_HPA : "CPU% cada 15s"
+METRICS_SRV -[#green]-> BK_HPA : "CPU% cada 15s"
+
+' ==================================================================
+' Paso 11 — Stress Test
+' ==================================================================
+STRESS -[#red]-> elb : "genera carga HTTP masiva"
+STRESS .[#red].> BK_HPA : "CPU sube → HPA escala\n2→3→4→5 pods"
+
+' ==================================================================
+' Paso 12 — Auto-Healing
+' ==================================================================
+HEALING -[#red]-> BK_POD1 : "kubectl delete pod"
+RS_CTRL .[#red].> BK_POD2 : "detecta y recrea Pod en segundos"
+
+' ==================================================================
+' Paso 13 — Metricas
+' ==================================================================
+METRICS_SRV -[#green]-> MONITOR : "kubectl top"
+EKS_OUTER -[#green]-> cw : "metricas del cluster"
+
+' ==================================================================
+' NOTAS
+' ==================================================================
+note right of FR_HPA
+  **Paso 10 — HPA en accion**
+  ═══════════════════════
+  • CPU < 70% → **2 Pods**
+  • CPU > 70% → escala:
+    2 → 3 → 4 → **5 Pods**
+  • CPU vuelve a bajar:
+    5 → 4 → 3 → **2 Pods**
+
+  **Validar con:**
+  kubectl get hpa -n tienda
+  kubectl get pods -n tienda -w
+end note
+
+note bottom of STRESS
+  **Paso 11 — Stress Test**
+  ═══════════════════════
+  Observar en otra terminal:
+  kubectl get pods -n tienda -w
+
+  Ver como aparecen NUEVOS Pods
+  cuando la CPU supera el 70%.
+  Luego bajan al cesar la carga.
+end note
+
+note right of RS_CTRL
+  **Paso 12 — Auto-Healing**
+  ═══════════════════════
+  K8s reacciona solo:
+  • Pod eliminado → recreado en segundos
+  • Nodo drenado → Pods movidos
+  • CrashLoopBackOff → reinicios automaticos
+  • Liveness/Readiness probes → restart
+
+  **El usuario NO nota interrupcion.**
+end note
+
+' ==================================================================
+' RESUMEN FINAL
+' ==================================================================
+note bottom of EKS_OUTER
+  ** CICLO DE VIDA CLOUD NATIVE COMPLETO**
+  ═══════════════════════════════════════
+  HPA  Auto-Healing  Metricas
+       ↓
+  **APLICACION siempre viva y monitoreada**
+end note
+
+footer **Bloque 5 completado**   Guia completa! App Cloud Native: Docker → VPC → EKS → Observabilidad → ECR → Deploy → HPA → Self-Healing → Metricas.
+@enduml
