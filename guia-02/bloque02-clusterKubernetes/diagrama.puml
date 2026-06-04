@@ -1,0 +1,144 @@
+@startuml Bloque2_ClusterKubernetes
+' ==================================================================
+' Bloque 2 — Cluster Kubernetes
+' paso03: Crear cluster EKS con CloudFormation
+' paso04: Conectar kubectl y validar acceso
+' paso05: Crear NodeGroup SPOT
+' ==================================================================
+
+!include <awslib/AWSCommon>
+
+!include <awslib/Groups/AWSCloud>
+!include <awslib/Groups/VPC>
+!include <awslib/Groups/AvailabilityZone>
+!include <awslib/Groups/PublicSubnet>
+!include <awslib/Groups/PrivateSubnet>
+!include <awslib/Groups/SecurityGroup>
+
+!include <awslib/NetworkingContentDelivery/VPCInternetGateway>
+!include <awslib/Compute/EC2Instance>
+!include <awslib/Containers/ElasticKubernetesService>
+!include <awslib/ManagementGovernance/CloudWatch>
+
+hide stereotype
+skinparam linetype ortho
+
+title **Bloque 2 — Cluster Kubernetes**\n(paso03) Crear EKS + (paso04) Conectar kubectl + (paso05) NodeGroup SPOT
+
+' ==================================================================
+' ENTORNO LOCAL — paso04
+' ==================================================================
+rectangle "  Entorno Local (paso04)\n══════════════════\nkubectl + kubeconfig (~/.kube/config)\nAWS CLI: aws eks update-kubeconfig" as LOCAL #2496ED
+
+' ==================================================================
+' REGION AWS
+' ==================================================================
+AWSCloudGroup(cloud) {
+
+  ' ==================================================================
+  ' VPC pre-existente (Bloque 1)
+  ' ==================================================================
+  VPCGroup(vpc, "VPC: laboratorio-vpc  10.0.0.0/16 [Bloque 1]") {
+
+    AvailabilityZoneGroup(az_a, "us-east-1a") {
+      PublicSubnetGroup(pub_a, "public-subnet-a  10.0.1.0/24")
+      PrivateSubnetGroup(app_a, "private-app-a  10.0.11.0/24")
+    }
+
+    AvailabilityZoneGroup(az_b, "us-east-1b") {
+      PublicSubnetGroup(pub_b, "public-subnet-b  10.0.2.0/24")
+      PrivateSubnetGroup(app_b, "private-app-b  10.0.12.0/24")
+    }
+
+    SecurityGroupGroup(sg_cluster, "SG: eks-cluster-sg\nall traffic desde 10.0.0.0/16")
+  }
+
+  ' ==================================================================
+  ' EKS Cluster — paso03
+  ' ==================================================================
+  rectangle "  Amazon EKS Cluster — paso03\n══════════════════════════════\n**laboratorio-eks** (v1.33)" as EKS_OUTER #FF9900 {
+
+    ElasticKubernetesService(eks, "EKS Control Plane\n(gestionado por AWS)", "v1.33")
+
+    ' --- Componentes del Control Plane ---
+    rectangle "  Control Plane components" as CP_COMP #232F3E {
+      rectangle "  API Server\n  (público + privado)" as API #FF9900
+      rectangle "  Scheduler" as SCHED #232F3E
+      rectangle "  Controller Manager" as CM #232F3E
+      rectangle "  etcd\n  (key-value store)" as ETCD #1A476F
+      rectangle "  authenticator\n  (IAM  RBAC)" as AUTH #DD344C
+    }
+
+    ' --- EKS Addons ---
+    rectangle "  EKS Addons" as ADDONS #569A31 {
+      rectangle "  vpc-cni\n  (red de Pods)" as CNI_ADD
+      rectangle "  coredns\n  (DNS interno)" as DNS_ADD
+      rectangle "  kube-proxy\n  (networking)" as KPROXY_ADD
+      rectangle "  metrics-server\n  (CPU / Mem)" as METRICS_ADD
+    }
+
+    ' --- CloudWatch Logs ---
+    CloudWatch(cw_logs, "CloudWatch Logs\n/aws/eks/laboratorio-eks/cluster\napi audit authenticator\ncontrollerManager scheduler", "")
+
+    ' --- NodeGroup — paso05 ---
+    rectangle "  Managed Node Group — paso05\n══════════════════════════════\n**laboratorio-nodegroup**\nt3.large SPOT · min 1 / max 3\nEBS 20 GB · AL2023 x86_64" as NG_PKG #569A31 {
+
+      EC2Instance(worker1, "Worker Node EC2", "t3.large SPOT")
+      EC2Instance(worker2, "Worker Node EC2", "t3.large SPOT")
+
+      ' --- Componentes del worker ---
+      rectangle "  kubelet\n  kube-proxy\n  containerd\n  VPC CNI plugin" as WORKER_COMP #569A31
+    }
+
+    ' --- kube-system ---
+    rectangle "  kube-system namespace\n══════════════════════\nCoreDNS · aws-node\nkube-proxy · metrics-server" as KUBE_SYS #8C4FFF
+  }
+
+}
+
+' ==================================================================
+' CONEXIONES
+' ==================================================================
+LOCAL -down-> cloud : "AWS Academy\ncredentials"
+
+' Cluster usa subnets
+EKS_OUTER -[hidden]down-> pub_a
+EKS_OUTER -[hidden]down-> pub_b
+EKS_OUTER -[hidden]down-> app_a
+EKS_OUTER -[hidden]down-> app_b
+
+' Control Plane interno
+API -[#blue]-> AUTH
+API -[#blue]-> ETCD
+AUTH -[#blue]-> SCHED
+AUTH -[#blue]-> CM
+
+' Workers registrados en Control Plane
+worker1 -[#blue]-> API : "kubelet"
+worker2 -[#blue]-> API : "kubelet"
+
+' Componentes en workers
+worker1 -[hidden]down-> WORKER_COMP
+worker2 -[hidden]down-> WORKER_COMP
+
+' NodeGroup en subnets privadas
+worker1 -[hidden]down-> app_a
+worker2 -[hidden]down-> app_b
+
+' Addons
+CNI_ADD -[hidden]down-> WORKER_COMP
+DNS_ADD -[hidden]down-> KUBE_SYS
+KPROXY_ADD -[hidden]down-> KUBE_SYS
+METRICS_ADD -[hidden]down-> KUBE_SYS
+
+' Cluster pods en workers
+KUBE_SYS -[hidden]down-> worker1
+
+' Logs a CloudWatch
+API -[#green]-> cw_logs
+
+' kubectl al API Server
+LOCAL -[#blue]-> API : "HTTPS (IAM auth)"
+
+footer **Bloque 2 completado**  Cluster EKS ACTIVE + kubectl conectado + Workers Ready  Kubernetes listo para apps
+@enduml
