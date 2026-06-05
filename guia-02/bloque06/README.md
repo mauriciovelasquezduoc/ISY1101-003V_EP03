@@ -18,6 +18,9 @@ docker run -it -v "..":/root/work -v ~/.aws:/root/.aws -v /var/run/docker.sock:/
 
 # Ya dentro del contenedor, configurar AWS:
 aws configure
+
+# Autenticarse en GitHub CLI (necesario para etapa00):
+gh auth login
 ```
 
 ---
@@ -27,7 +30,12 @@ aws configure
 Cada etapa es autocontenida. Entra al directorio y ejecuta el script:
 
 ```bash
-cd bloque06/etapa01-ValidaEntorno
+# Paso previo — Crear repositorios y Secrets en GitHub (una sola vez)
+cd /root/work/bloque04-aplicacion/paso-00-github-cli
+bash crear-repos-y-secrets.sh
+
+# Luego seguir con las etapas:
+cd /root/work/bloque06/etapa01-ValidaEntorno
 bash ejecutar.sh
 ```
 
@@ -56,6 +64,7 @@ fixwin
 
 | Etapa | Duracion | Carpeta | Que hace |
 |-------|----------|---------|----------|
+| **00** | ~2 min | `bloque04/…/paso-00-github-cli` | Crea 3 repos en GitHub + 6 Secrets en cada uno |
 | **01** | ~1 min | `etapa01-ValidaEntorno` | Valida herramientas (aws, kubectl, docker), credenciales AWS, roles IAM |
 | **02** | ~3 min | `etapa02-CreaVPC` | Despliega VPC con CloudFormation (6 subnets, VPC Endpoints, IGW) |
 | **03** | ~1 min | `etapa03-ValidaSubnets` | Verifica tags EKS en subnets para LoadBalancer |
@@ -79,18 +88,19 @@ Ejecutala en una **segunda terminal** mientras la etapa04 crea el cluster.
 ```
                     TERMINAL 1                                          TERMINAL 2
                     ─────────                                          ─────────
-min  0  ┌───────   etapa01-ValidaEntorno
-min  1  │          etapa02-CreaVPC
-min  4  │          etapa03-ValidaSubnets
-min  5  │          etapa04-CreaClusterEKS (~15 min) ────────────────  etapa07-PublicaECR (~10 min)
+min  0  ┌───────   etapa00-GitHub-Repos-Secrets (~2 min)
+min  2  │          etapa01-ValidaEntorno
+min  3  │          etapa02-CreaVPC
+min  6  │          etapa03-ValidaSubnets
+min  7  │          etapa04-CreaClusterEKS (~15 min) ────────────────  etapa07-PublicaECR (~10 min)
         │          ████████████████████████████████                   ██████████
-min 15  │          ████████████████████████████████                   ✅ listo
-min 20  │          etapa05-CreaNodeGroup
-min 30  │          etapa06-ValidaObservabilidad
-min 32  │          etapa08-DespliegaK8s ◄───────────────────────────  (imagenes listas)
-min 37  │          etapa09-ValidaApp
-min 38  │          etapa10-ConectividadURL
-min 39  └───────   etapa11-Auditoria
+min 17  │          ████████████████████████████████                   ✅ listo
+min 22  │          etapa05-CreaNodeGroup
+min 32  │          etapa06-ValidaObservabilidad
+min 34  │          etapa08-DespliegaK8s ◄───────────────────────────  (imagenes listas)
+min 39  │          etapa09-ValidaApp
+min 40  │          etapa10-ConectividadURL
+min 41  └───────   etapa11-Auditoria
 ```
 
 ### Comandos — modo paralelo
@@ -99,6 +109,10 @@ min 39  └───────   etapa11-Auditoria
 # ========== TERMINAL 1 ==========
 
 fix-crlf
+
+# Paso previo — GitHub repos y Secrets (una sola vez)
+cd /root/work/bloque04-aplicacion/paso-00-github-cli && bash crear-repos-y-secrets.sh
+
 cd /root/work/bloque06/etapa01-ValidaEntorno && bash ejecutar.sh
 cd /root/work/bloque06/etapa02-CreaVPC && bash ejecutar.sh
 cd /root/work/bloque06/etapa03-ValidaSubnets && bash ejecutar.sh
@@ -132,6 +146,10 @@ docker exec -it $(docker ps -q --filter ancestor=devops-eks-lab) bash
 
 ```bash
 fix-crlf
+
+# Paso previo — GitHub repos y Secrets (una sola vez)
+cd /root/work/bloque04-aplicacion/paso-00-github-cli && bash crear-repos-y-secrets.sh
+
 cd /root/work/bloque06/etapa01-ValidaEntorno && bash ejecutar.sh
 cd /root/work/bloque06/etapa02-CreaVPC && bash ejecutar.sh
 cd /root/work/bloque06/etapa03-ValidaSubnets && bash ejecutar.sh
@@ -151,14 +169,19 @@ cd /root/work/bloque06/etapa11-Auditoria && bash ejecutar.sh
 
 | Modo       | Tiempo     |
 | ---------- | ---------- |
-| Paralelo   | **~39 min** |
-| Secuencial | ~49 min    |
+| Paralelo   | **~41 min** |
+| Secuencial | ~51 min    |
 
 ---
 
 ## Estructura de directorios
 
 ```
+bloque04-aplicacion/
+└── paso-00-github-cli/
+    ├── Readme.md
+    └── crear-repos-y-secrets.sh   ← se ejecuta UNA vez antes de empezar
+
 bloque06/
 ├── README.md
 ├── etapa01-ValidaEntorno/

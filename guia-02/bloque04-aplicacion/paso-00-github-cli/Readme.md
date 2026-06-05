@@ -22,12 +22,12 @@ github.com
 
 # ¿Por qué usar `gh` en vez de la web?
 
-| Interfaz web | GitHub CLI |
-|---|---|
-| Click por click | Un comando |
-| No automatizable | Se puede poner en scripts |
-| Manual, lento | Rápido, repetible |
-| Difícil de documentar | Comandos copiables |
+| Interfaz web           | GitHub CLI                |
+| ---------------------- | ------------------------- |
+| Click por click        | Un comando                |
+| No automatizable       | Se puede poner en scripts |
+| Manual, lento          | Rápido, repetible        |
+| Difícil de documentar | Comandos copiables        |
 
 ---
 
@@ -54,8 +54,8 @@ Opciones recomendadas:
 ? What is your preferred protocol for Git operations?
   > HTTPS
 
-? Authenticate Git with your GitHub credentials?
-  > Login with a web browser
+? Authenticate Git with your GitHub credentials? n
+  > Paste an authentication token
 ```
 
 Se abre el navegador, aceptas, y listo. Verificar:
@@ -83,26 +83,26 @@ Si existe, muestra los datos. Si no, da error — eso indica que hay que crearlo
 # Crear un repositorio público
 
 ```bash
-gh repo create 202601_ep03_frontend --public --description "Frontend — Tienda de Perritos"
+gh repo create 202601_ep03_frontend --public --clone --description "Frontend — Tienda de Perritos"
 ```
 
 Parámetros:
 
-| Flag | Significado |
-|---|---|
-| `--public` | Repositorio público (visible para todos) |
-| `--private` | Repositorio privado (solo tú y colaboradores) |
-| `--clone` | Clonarlo localmente después de crearlo |
-| `--description` | Descripción del repo |
+| Flag              | Significado                                    |
+| ----------------- | ---------------------------------------------- |
+| `--public`      | Repositorio público (visible para todos)      |
+| `--private`     | Repositorio privado (solo tú y colaboradores) |
+| `--clone`       | Clonarlo localmente después de crearlo        |
+| `--description` | Descripción del repo                          |
 
 ---
 
 # Crear los 3 repositorios
 
 ```bash
-gh repo create 202601_ep03_frontend --public --description "Frontend — Tienda de Perritos EKS"
-gh repo create 202601_ep03_backend  --public --description "Backend — API Tienda de Perritos EKS"
-gh repo create 202601_ep03_db       --public --description "Base de datos — Tienda de Perritos EKS"
+gh repo create 202601_ep03_frontend --public --clone --description "Frontend — Tienda de Perritos EKS"
+gh repo create 202601_ep03_backend  --public --clone --description "Backend — API Tienda de Perritos EKS"
+gh repo create 202601_ep03_db       --public --clone --description "Base de datos — Tienda de Perritos EKS"
 ```
 
 > Si el repo ya existe, `gh` mostrará un error. Puedes ignorarlo o verificar antes con `gh repo view`.
@@ -199,7 +199,7 @@ Salida:
 ```
 Name:   202601_ep03_frontend
 Owner:  NOMBRE_USUARIO
-Visibility: private
+Visibility: public
 URL:    https://github.com/NOMBRE_USUARIO/202601_ep03_frontend
 ```
 
@@ -229,13 +229,13 @@ SONAR_TOKEN            2026-06-02
 
 Para crear los 3 repos, agregar un colaborador admin a cada uno y crear 18 Secrets (6 por repo), necesitarías ejecutar:
 
-| Acción | Comandos |
-|---|---|
-| Crear 3 repos públicos | 3 x `gh repo create` |
-| Agregar colaborador admin | 3 x `gh api PUT /collaborators` |
-| Crear 18 Secrets | 18 x `gh secret set` |
-| Verificar | 3 x `gh repo view` + 3 x `gh secret list` |
-| **Total mínimo** | **30 comandos** |
+| Acción                   | Comandos                                      |
+| ------------------------- | --------------------------------------------- |
+| Crear 3 repos públicos   | 3 x `gh repo create`                        |
+| Agregar colaborador admin | 3 x `gh api PUT /collaborators`             |
+| Crear 18 Secrets          | 18 x `gh secret set`                        |
+| Verificar                 | 3 x `gh repo view` + 3 x `gh secret list` |
+| **Total mínimo**   | **30 comandos**                         |
 
 ---
 
@@ -247,13 +247,14 @@ En vez de 30 comandos manuales, usa el script que lo hace todo de una vez:
 bash crear-repos-y-secrets.sh
 ```
 
-El script:
+El script tiene **4 partes**:
 
-| Parte | ¿Qué hace? |
-|---|---|
-| **Parte 1** | Crea los 3 repos públicos (`202601_ep03_frontend`, `202601_ep03_backend`, `202601_ep03_db`). Si ya existen, continúa sin error. Agrega a `mauriciovelasquezduoc` como admin en cada uno. |
-| **Parte 2** | Por cada repo, pide interactivamente los 6 Secrets (`AWS_ACCESS_KEY_ID`, `AWS_REGION`, `AWS_SECRET_ACCESS_KEY`, `AWS_SESSION_TOKEN`, `SNYK_TOKEN`, `SONAR_TOKEN`). Si el Secret ya existe y dejas vacío, lo conserva. Si ingresas un valor, lo actualiza. |
-| **Parte 3** | Muestra un resumen con las URLs de los 3 repos y el estado de todos los Secrets. |
+| Parte             | ¿Qué hace?                                                                                                                                                                                                                                                                                                      |
+| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Parte 1** | Crea los 3 repos públicos (`202601_ep03_frontend`, `202601_ep03_backend`, `202601_ep03_db`). Si ya existen, continúa sin error. Agrega a `mauriciovelasquezduoc` como admin en cada uno.                                                                                                                |
+| **Parte 2** | Pide interactivamente los 6 Secrets**una sola vez** (`AWS_ACCESS_KEY_ID`, `AWS_REGION`, `AWS_SECRET_ACCESS_KEY`, `AWS_SESSION_TOKEN`, `SNYK_TOKEN`, `SONAR_TOKEN`). Si dejas un valor vacío, ese secreto se omite. Muestra un resumen de lo ingresado y pide confirmación antes de continuar. |
+| **Parte 3** | Aplica los 6 secretos a cada uno de los 3 repositorios automáticamente.                                                                                                                                                                                                                                          |
+| **Parte 4** | Muestra un resumen con las URLs de los 3 repos, el estado de todos los Secrets, y los enlaces directos a la página de Secrets en GitHub.                                                                                                                                                                         |
 
 ---
 
@@ -272,33 +273,61 @@ Al ejecutar el script:
  PARTE 1 — REPOSITORIOS
 =========================================
 
->>> Procesando: 202601_ep03_frontend
+>>> Procesando: NOMBRE_USUARIO/202601_ep03_frontend
     Creando repositorio...
->>> Procesando: 202601_ep03_backend
+    Agregando colaborador admin: mauriciovelasquezduoc
+    ✔ mauriciovelasquezduoc agregado como admin
+>>> Procesando: NOMBRE_USUARIO/202601_ep03_backend
     Creando repositorio...
->>> Procesando: 202601_ep03_db
+    Agregando colaborador admin: mauriciovelasquezduoc
+    ✔ mauriciovelasquezduoc agregado como admin
+>>> Procesando: NOMBRE_USUARIO/202601_ep03_db
     Creando repositorio...
+    Agregando colaborador admin: mauriciovelasquezduoc
+    ✔ mauriciovelasquezduoc agregado como admin
 
 =========================================
- PARTE 2 — SECRETS (por repositorio)
+ PARTE 2 — INGRESO DE SECRETOS (una vez para todos los repos)
 =========================================
 
-=========================================
- Repositorio: 202601_ep03_frontend
-=========================================
+A continuación ingresa los 6 secretos.
+Se aplicarán automáticamente a los 3 repositorios.
+Si dejas un valor vacío, ese secreto no se configurará.
 
-  [AWS_ACCESS_KEY_ID] (nuevo)
+─────────────────────────────────────────
   Ingresa el valor para AWS_ACCESS_KEY_ID: ********
-    ✔ Actualizado
+  ✔ Valor registrado (20 caracteres)
 
-  [AWS_REGION] (nuevo)
+─────────────────────────────────────────
   Ingresa el valor para AWS_REGION: ********
-    ✔ Actualizado
+  ✔ Valor registrado (9 caracteres)
 
   ... (los 6 Secrets)
 
 =========================================
- PARTE 3 — RESUMEN DE LO CREADO
+ RESUMEN DE SECRETOS A CONFIGURAR
+=========================================
+
+  AWS_ACCESS_KEY_ID             ✔ (20 caracteres)
+  AWS_REGION                    ✔ (9 caracteres)
+  ... (los 6 Secrets)
+
+¿Aplicar estos secretos a los 3 repositorios? (s/n): s
+
+=========================================
+ PARTE 3 — APLICANDO SECRETOS A CADA REPOSITORIO
+=========================================
+
+>>> Repositorio: NOMBRE_USUARIO/202601_ep03_frontend
+─────────────────────────────────────────
+  [AWS_ACCESS_KEY_ID] configurando... ✔
+  [AWS_REGION] configurando... ✔
+  ... (los 6 Secrets)
+
+  (se repite para los otros 2 repos)
+
+=========================================
+ PARTE 4 — RESUMEN DE LO CREADO
 =========================================
 
 Repositorios:
@@ -311,6 +340,7 @@ Secrets configurados en cada repositorio:
 ----------------------------------------
 
   [202601_ep03_frontend]
+  https://github.com/NOMBRE_USUARIO/202601_ep03_frontend/settings/secrets/actions
     AWS_ACCESS_KEY_ID         actualizado: 2026-06-02
     AWS_REGION                actualizado: 2026-06-02
     AWS_SECRET_ACCESS_KEY     actualizado: 2026-06-02
