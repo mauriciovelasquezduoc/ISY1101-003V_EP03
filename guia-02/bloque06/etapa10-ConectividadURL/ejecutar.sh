@@ -65,3 +65,8 @@ else
 fi
 
 echo ""
+echo "============================================================="
+echo " ETAPA 10 COMPLETADA"
+echo "============================================================="
+echo "Continua con: cd ../etapa11-Auditoria"
+echo ""

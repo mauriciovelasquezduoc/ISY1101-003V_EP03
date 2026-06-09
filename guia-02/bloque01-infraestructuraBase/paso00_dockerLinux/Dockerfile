@@ -79,6 +79,20 @@ RUN curl -LO \
 RUN curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
 
 # =====================================================
+# GitHub CLI (gh)
+# =====================================================
+
+RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | \
+    dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg && \
+    chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg && \
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" \
+    > /etc/apt/sources.list.d/github-cli.list && \
+    apt-get update && \
+    apt-get install -y gh && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# =====================================================
 # eksctl
 # =====================================================
 
@@ -185,19 +199,6 @@ RUN git config --global init.defaultBranch main && \
     git config --global user.email "you@example.com" && \
     git config --global user.name "Your Name"
 
-# =====================================================
-# GitHub CLI (gh)
-# =====================================================
-
-RUN mkdir -p -m 755 /etc/apt/keyrings && \
-    wget -qO- https://cli.github.com/packages/githubcli-archive-keyring.gpg | \
-      tee /etc/apt/keyrings/githubcli-archive-keyring.gpg > /dev/null && \
-    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | \
-      tee /etc/apt/sources.list.d/github-cli.list > /dev/null && \
-    apt-get update && \
-    apt-get install -y gh && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
 
 # =====================================================
 # Workspace
@@ -215,6 +216,8 @@ RUN aws --version && \
     terraform version && \
     eksctl version && \
     gh --version
+
+
 
 # =====================================================
 # Arranque: corregir CRLF automaticamente y luego bash

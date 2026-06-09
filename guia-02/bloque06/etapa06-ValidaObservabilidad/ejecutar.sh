@@ -4,6 +4,7 @@
 # ==================================================================
 set -e
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REGION="us-east-1"
 CLUSTER_NAME="laboratorio-eks"
 
@@ -48,9 +49,38 @@ echo ""
 echo "[8] Log Groups en CloudWatch..."
 aws logs describe-log-groups --region $REGION --query "logGroups[*].logGroupName" --output table 2>/dev/null | grep -i eks || echo "  (puede tardar en aparecer)"
 
+# ==================================================================
+# Ejecutar scripts de validación de observabilidad (bloque03)
+# ==================================================================
+echo ""
+echo "============================================================="
+echo " EJECUTANDO SCRIPTS DE VALIDACION DE OBSERVABILIDAD"
+echo "============================================================="
+echo ""
+
+METRICS_SCRIPT="../../bloque03-observabilidad/paso06_metrics/configurar-validar.sh"
+if [ -x "$METRICS_SCRIPT" ]; then
+  cd "$(dirname "$METRICS_SCRIPT")"
+  bash "$(basename "$METRICS_SCRIPT")"
+  cd "$SCRIPT_DIR"
+else
+  echo "  ⚠ No se encontro $METRICS_SCRIPT"
+fi
+
+echo ""
+
+CW_SCRIPT="../../bloque03-observabilidad/paso07_cloudWatch/configurar-validar.sh"
+if [ -x "$CW_SCRIPT" ]; then
+  cd "$(dirname "$CW_SCRIPT")"
+  bash "$(basename "$CW_SCRIPT")"
+  cd "$SCRIPT_DIR"
+else
+  echo "  ⚠ No se encontro $CW_SCRIPT"
+fi
+
 echo ""
 echo "============================================================="
 echo " ETAPA 06 COMPLETADA — Metrics + CloudWatch validados"
 echo "============================================================="
-echo "Continua con: cd ../etapa07"
+echo "Continua con: cd ../etapa07-PublicaECR"
 echo ""

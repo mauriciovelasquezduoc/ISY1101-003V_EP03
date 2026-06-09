@@ -4,10 +4,11 @@ set -e
 # =====================================================
 # Script: crear-repos-y-secrets.sh
 # Crea 3 repositorios y configura 6 Secrets en GitHub
-# usando GitHub CLI (gh) de forma interactiva.
+# usando GitHub CLI (gh).
 #
-# Flujo: primero pide los 6 secretos UNA sola vez,
-# luego los aplica a cada uno de los 3 repositorios.
+# Los secretos se leen desde el archivo secrets.txt
+# (formato key=value, una por línea). Las claves se
+# mapean case-insensitive a los nombres de GitHub Secrets.
 # =====================================================
 
 # -----------------------------------------------------
@@ -37,6 +38,9 @@ ORG=""  # dejar vacío para repos personales
 # Funciones auxiliares
 # -----------------------------------------------------
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SECRETS_FILE="$SCRIPT_DIR/secrets.txt"
+
 banner() {
   echo ""
   echo "========================================="
@@ -45,12 +49,55 @@ banner() {
   echo ""
 }
 
-leer_secreto() {
-  local name="$1"
-  local mensaje="$2"
-  SECRETO_VALOR=""
-  read -r -s -p "$mensaje" SECRETO_VALOR || true
-  echo ""
+cargar_secrets_desde_archivo() {
+  # Lee secrets.txt (formato key=value) y devuelve arrays
+  # SECRETS_KEYS y SECRETS_VALS con los pares leídos.
+  SECRETS_KEYS=()
+  SECRETS_VALS=()
+
+  if [ ! -f "$SECRETS_FILE" ]; then
+    echo "ERROR: No se encontró el archivo $SECRETS_FILE"
+    echo "       Créalo con el formato key=value (una por línea)."
+    exit 1
+  fi
+
+  while IFS='=' read -r key value || [ -n "$key" ]; do
+    # Saltar líneas vacías o comentarios
+    [[ -z "$key" || "$key" =~ ^[[:space:]]*# ]] && continue
+    key=$(echo "$key" | xargs)
+    value=$(echo "$value" | xargs)
+    SECRETS_KEYS+=("$key")
+    SECRETS_VALS+=("$value")
+  done < "$SECRETS_FILE"
+}
+
+# Mapea claves de secrets.txt a nombres de GitHub Secrets.
+# Las claves que no se encuentren quedan vacías.
+mapear_secreto() {
+  local github_name="$1"
+  local result=""
+  for i in "${!SECRETS_KEYS[@]}"; do
+    local k="${SECRETS_KEYS[$i]}"
+    # Mapeo case-insensitive + guiones bajos
+    local k_upper
+    k_upper=$(echo "$k" | tr '[:lower:]' '[:upper:]')
+    if [ "$k_upper" = "$github_name" ]; then
+      result="${SECRETS_VALS[$i]}"
+      break
+    fi
+  done
+  echo "$result"
+}
+
+# Busca una clave exacta (case-sensitive) en los arrays ya cargados
+obtener_valor_raw() {
+  local target="$1"
+  for i in "${!SECRETS_KEYS[@]}"; do
+    if [ "${SECRETS_KEYS[$i]}" = "$target" ]; then
+      echo "${SECRETS_VALS[$i]}"
+      return
+    fi
+  done
 }
 
 # -----------------------------------------------------
@@ -66,15 +113,50 @@ if ! command -v gh &> /dev/null; then
   exit 1
 fi
 
+# Cargar secrets.txt temprano para obtener GITHUB_TOKEN y autenticar no-interactivo
+cargar_secrets_desde_archivo
+GH_TOKEN=$(obtener_valor_raw "GITHUB_TOKEN")
+
+unset GITHUB_TOKEN
+
 if ! gh auth status &> /dev/null; then
-  echo ""
-  echo "No hay sesión activa en GitHub CLI."
-  echo "Iniciando autenticación interactiva..."
-  gh auth login
+  if [ -n "$GH_TOKEN" ]; then
+    echo ""
+    echo "Autenticando con GITHUB_TOKEN desde secrets.txt..."
+    echo "$GH_TOKEN" | gh auth login --with-token
+  else
+    echo ""
+    echo "No hay GITHUB_TOKEN en secrets.txt."
+    echo "Iniciando autenticación interactiva..."
+    gh auth login
+  fi
 fi
 
 echo ""
 gh auth status
+
+# -----------------------------------------------------
+# Configurar SSH key para GitHub (operar sin credenciales)
+# -----------------------------------------------------
+SSH_KEY="$HOME/.ssh/github_ed25519"
+SSH_KEY_TITLE="$(hostname)-$(date +%Y%m%d)"
+
+if [ -f "$SSH_KEY" ]; then
+  echo ""
+  echo "SSH key ya existe: $SSH_KEY"
+else
+  echo ""
+  echo "Generando SSH key ed25519 para GitHub..."
+  ssh-keygen -t ed25519 -f "$SSH_KEY" -N "" -C "github-$(hostname)"
+  echo ""
+  echo "Registrando SSH key pública en GitHub..."
+  gh ssh-key add "$SSH_KEY.pub" --title "$SSH_KEY_TITLE"
+  echo "SSH key registrada: $SSH_KEY_TITLE"
+fi
+
+eval "$(ssh-agent -s)"
+ssh-add ~/.ssh/github_ed25519
+ssh-add -l
 
 # Obtener el owner (usuario autenticado o la org configurada)
 if [ -n "$ORG" ]; then
@@ -128,28 +210,20 @@ for repo in "${REPOS[@]}"; do
 done
 
 # -----------------------------------------------------
-# PARTE 2 — Pedir los 6 secretos UNA sola vez
+# PARTE 2 — Leer secretos desde secrets.txt
 # -----------------------------------------------------
 
-banner "PARTE 2 — INGRESO DE SECRETOS (una vez para todos los repos)"
+banner "PARTE 2 — LECTURA DE SECRETOS DESDE secrets.txt"
 
-echo "A continuación ingresa los 6 secretos."
-echo "Se aplicarán automáticamente a los 3 repositorios."
-echo "Si dejas un valor vacío, ese secreto no se configurará."
+echo "Archivo leído: $SECRETS_FILE"
+echo "Se encontraron ${#SECRETS_KEYS[@]} claves."
 echo ""
 
+# Construir SECRETS_VALUES mapeando desde el archivo
 SECRETS_VALUES=()
-
 for secret in "${SECRETS[@]}"; do
-  echo "─────────────────────────────────────────"
-  leer_secreto "$secret" "  Ingresa el valor para $secret: "
-  SECRETS_VALUES+=("$SECRETO_VALOR")
-  if [ -n "$SECRETO_VALOR" ]; then
-    echo "  ✔ Valor registrado (${#SECRETO_VALOR} caracteres)"
-  else
-    echo "  ○ Vacío — se omitirá este secreto"
-  fi
-  echo ""
+  valor=$(mapear_secreto "$secret")
+  SECRETS_VALUES+=("$valor")
 done
 
 banner "RESUMEN DE SECRETOS A CONFIGURAR"
@@ -165,11 +239,7 @@ for i in "${!SECRETS[@]}"; do
 done
 
 echo ""
-read -r -p "¿Aplicar estos secretos a los 3 repositorios? (s/n): " CONFIRMAR || true
-if [ "$CONFIRMAR" != "s" ] && [ "$CONFIRMAR" != "S" ]; then
-  echo "Cancelado por el usuario."
-  exit 0
-fi
+echo "Aplicando secretos automaticamente..."
 
 # -----------------------------------------------------
 # PARTE 3 — Aplicar secretos a cada repositorio
@@ -245,3 +315,6 @@ for repo in "${REPOS[@]}"; do
   echo "  https://github.com/$GH_OWNER/$repo/settings/secrets/actions"
 done
 echo ""
+
+
+gh ssh-key add ~/.ssh/github_ed25519.pub --title "$(hostname)-$(date +%Y%m%d)"

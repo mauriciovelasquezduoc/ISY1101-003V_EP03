@@ -82,7 +82,17 @@ echo "=== 13. HPA ==="
 kubectl get hpa -n $NAMESPACE 2>/dev/null || echo "SIN HPA"
 echo ""
 
-echo "=== 14. URL DE LA APLICACION ==="
+echo "=== 14. STRESS TEST - RESULTADOS ==="
+STRESS_REPORT=$(kubectl get events -n $NAMESPACE --sort-by=.metadata.creationTimestamp 2>/dev/null | grep -i "ScaledUp\|ScaledDown" | tail -5)
+if [ -n "$STRESS_REPORT" ]; then
+  echo "  Eventos de escalamiento detectados:"
+  echo "$STRESS_REPORT"
+else
+  echo "  No se detectaron eventos de escalamiento (HPA puede no haber actuado aun)"
+fi
+echo ""
+
+echo "=== 15. URL DE LA APLICACION ==="
 HOSTNAME=$(kubectl get svc tienda-frontend -n $NAMESPACE -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' 2>/dev/null || echo "")
 if [ -z "$HOSTNAME" ] || [ "$HOSTNAME" = "null" ]; then
   echo "  LoadBalancer no disponible"
@@ -110,14 +120,18 @@ EKS_OK=$(aws eks describe-cluster --name $CLUSTER --region $REGION --query "clus
 NG_OK=$(aws eks describe-nodegroup --cluster-name $CLUSTER --nodegroup-name laboratorio-nodegroup --region $REGION --query "nodegroup.status" --output text 2>/dev/null)
 DB_OK=$(aws ecr describe-repositories --repository-names tienda-db --region $REGION --query "repositories[0].repositoryUri" --output text 2>/dev/null)
 DEPLOY_OK=$(kubectl get deployment -n $NAMESPACE 2>/dev/null | grep -c "tienda" || echo "0")
+HPA_OK=$(kubectl get hpa -n $NAMESPACE 2>/dev/null | tail -n +2 | wc -l || echo "0")
+STRESS_OK=$(kubectl get events -n $NAMESPACE 2>/dev/null | grep -c "ScaledUp" || echo "0")
 URL_OK=$HOSTNAME
 
 check "VPC laboratorio-vpc-completa          ($VPC_OK)" "$VPC_OK"
 check "Cluster EKS ACTIVE                   ($EKS_OK)" "$EKS_OK"
 check "NodeGroup ACTIVE                     ($NG_OK)" "$NG_OK"
 check "ECR: tienda-db                       ($DB_OK)" "$DB_OK"
-check "Deployments en namespace tienda      ($DEPLOY_OK encontrados)" "$DEPLOY_OK"
-check "App accesible via LoadBalancer       ($URL_OK)" "$URL_OK"
+check "Deployments en namespace tienda       ($DEPLOY_OK encontrados)" "$DEPLOY_OK"
+check "HPA configurados                     ($HPA_OK HPA activos)" "$HPA_OK"
+check "Escalamiento automatico (stress)      ($STRESS_OK eventos)" "$STRESS_OK"
+check "App accesible via LoadBalancer        ($URL_OK)" "$URL_OK"
 
 echo ""
 echo "================================================================="
@@ -133,4 +147,5 @@ echo ""
 echo "============================================================="
 echo " ETAPA 11 COMPLETADA"
 echo "============================================================="
+echo "Continua con: cd ../etapa12-LimpiezaTotal"
 echo ""

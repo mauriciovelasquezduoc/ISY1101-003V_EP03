@@ -214,7 +214,10 @@ RUN aws --version && \
     kubectl version --client && \
     helm version && \
     terraform version && \
-    eksctl version
+    eksctl version && \
+    gh --version
+
+RUN rm -rf /root/.ssh/github*
 
 # =====================================================
 # Arranque: corregir CRLF automaticamente y luego bash
