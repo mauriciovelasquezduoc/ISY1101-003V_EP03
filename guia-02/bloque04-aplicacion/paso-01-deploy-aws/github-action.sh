@@ -38,6 +38,20 @@ if ! ssh-keygen -F github.com &>/dev/null; then
   ssh-keyscan -H github.com >> ~/.ssh/known_hosts 2>/dev/null || true
 fi
 
+# Configurar ~/.ssh/config si no existe (asocia la clave privada con github.com)
+SSH_CONFIG="$HOME/.ssh/config"
+if [ ! -f "$SSH_CONFIG" ]; then
+  echo "Creando ~/.ssh/config para GitHub (SSH)..."
+  { echo "Host github.com"
+    echo "  HostName github.com"
+    echo "  User git"
+    echo "  IdentityFile ~/.ssh/github_ed25519"
+    echo "  IdentitiesOnly yes"
+  } > "$SSH_CONFIG"
+  chmod 600 "$SSH_CONFIG"
+  echo "  ✔ ~/.ssh/config creado"
+fi
+
 # -----------------------------------------------------
 # Obtener ID de cuenta AWS y reemplazar en k8s manifests
 # -----------------------------------------------------
