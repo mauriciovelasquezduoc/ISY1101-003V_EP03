@@ -39,7 +39,9 @@ ORG=""  # dejar vacío para repos personales
 # -----------------------------------------------------
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SECRETS_FILE="$SCRIPT_DIR/secrets.txt"
+# El archivo secrets.txt ahora está en la raíz del proyecto (guia-02/), al lado de pasos.md
+SCRIPT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+SECRETS_FILE="$SCRIPT_ROOT/secrets.txt"
 
 banner() {
   echo ""

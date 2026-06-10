@@ -124,6 +124,25 @@ Tres repositorios ECR listos para recibir imágenes Docker. Tiempo estimado: ~2 
 
 ## Paso 8 — Publicar en GitHub + Desplegar en Kubernetes
 
+**⚠ Importante — Antes de comenzar:**
+Antes de ejecutar cualquier comando de este paso, debes llenar el archivo **`secrets.txt`** que se encuentra en la raíz del proyecto (`guia-02/secrets.txt`). Este archivo contiene las credenciales que GitHub Actions necesita para construir y publicar las imágenes en ECR.
+
+Abre el archivo y completa los valores correspondientes:
+
+```text
+aws_access_key_id=AKIAIOSFODNN7EXAMPLE
+aws_secret_access_key=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+aws_session_token=IQoJb3JpZ2luX2VjEPz...EXAMPLE
+SONAR_TOKEN=tusonartoken
+SNYK_TOKEN=tusnyktoken
+AWS_REGION=us-east-1
+GITHUB_TOKEN=tu_github_token_personal
+```
+
+> Los tokens `SONAR_TOKEN`, `SNYK_TOKEN` y `GITHUB_TOKEN` son opcionales (puedes dejarlos vacíos si no los usas), pero las credenciales de AWS (`aws_access_key_id`, `aws_secret_access_key`, `aws_session_token`) y `AWS_REGION` **son obligatorias** para que los pipelines CI/CD funcionen.
+
+Luego ejecuta el script `crear-repos-y-secrets.sh` desde `bloque04-aplicacion/paso-00-github-cli/` para crear los repositorios y configurar automáticamente los secrets en GitHub.
+
 **¿Qué se hará?**
 Crear los repositorios en GitHub con sus secrets (SSH key, AWS credenciales), hacer push del código fuente (DB, Backend, Frontend) para que GitHub Actions construya y publique las imágenes en ECR, esperar a que las imágenes estén disponibles y finalmente desplegar los manifiestos Kubernetes en el clúster EKS en orden: MySQL Database → Backend API → Frontend Web con LoadBalancer.
 
