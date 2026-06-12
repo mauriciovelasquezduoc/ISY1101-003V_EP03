@@ -1,0 +1,137 @@
+@startuml Bloque1_InfraestructuraBase
+' ==================================================================
+' Bloque 1 — Infraestructura Base
+' paso00: Entorno Docker + herramientas
+' paso01: IAM Roles + VPC Multi-AZ con CloudFormation
+' paso02: Validar tags EKS en subnets
+' ==================================================================
+
+!include <awslib/AWSCommon>
+
+!include <awslib/Groups/AWSCloud>
+!include <awslib/Groups/VPC>
+!include <awslib/Groups/AvailabilityZone>
+!include <awslib/Groups/PublicSubnet>
+!include <awslib/Groups/PrivateSubnet>
+!include <awslib/Groups/SecurityGroup>
+
+!include <awslib/NetworkingContentDelivery/VPCInternetGateway>
+!include <awslib/SecurityIdentityCompliance/IdentityandAccessManagement>
+!include <awslib/Storage/SimpleStorageService>
+
+hide stereotype
+skinparam linetype ortho
+
+title **Bloque 1 — Infraestructura Base**\n(paso00) Entorno Docker + (paso01) IAM & VPC + (paso02) Validar Subnets EKS
+
+' ==================================================================
+' ENTORNO LOCAL — paso00
+' ==================================================================
+rectangle "  Entorno Local "
+'(paso00)\n══════════════════\nDocker Container (devops-eks-lab)\nAWS CLI + kubectl + eksctl + helm + k9s" as LOCAL #2496ED
+
+' ==================================================================
+' REGION AWS
+' ==================================================================
+AWSCloudGroup(cloud) {
+
+  ' ==================================================================
+  ' IAM Roles — paso01
+  ' ==================================================================
+  rectangle "  IAM Roles (paso01)\n══════════════════" as IAM_PKG #DD344C {
+    IdentityandAccessManagement(iam_cluster, "LabEKSClusterRole", "EKS Control Plane")
+    IdentityandAccessManagement(iam_node, "LabEKSNodeRole", "EC2 Worker Nodes")
+  }
+
+  ' ==================================================================
+  ' VPC — paso01
+  ' ==================================================================
+  VPCGroup(vpc, "VPC: laboratorio-vpc  10.0.0.0/16") {
+
+    VPCInternetGateway(igw, "Internet Gateway", "")
+
+    ' --- AZ us-east-1a ---
+    AvailabilityZoneGroup(az_a, "us-east-1a") {
+
+      PublicSubnetGroup(pub_a, "public-subnet-a  10.0.1.0/24\n[kubernetes.io/role/elb = 1]") {
+        rectangle "  Para ALB/NLB\n  públicos" as note_pub_a #FF9900
+      }
+
+      PrivateSubnetGroup(app_a, "private-app-a  10.0.11.0/24\n[kubernetes.io/role/internal-elb = 1]") {
+        rectangle "  Para ALB/NLB\n  internos" as note_app_a #1A476F
+      }
+
+      PrivateSubnetGroup(data_a, "private-data-a  10.0.21.0/24") {
+        rectangle "  Datos / DB\n  sin tags ELB" as note_data_a #1A476F
+      }
+    }
+
+    ' --- AZ us-east-1b ---
+    AvailabilityZoneGroup(az_b, "us-east-1b") {
+
+      PublicSubnetGroup(pub_b, "public-subnet-b  10.0.2.0/24\n[kubernetes.io/role/elb = 1]") {
+        rectangle "  Para ALB/NLB\n  públicos" as note_pub_b #FF9900
+      }
+
+      PrivateSubnetGroup(app_b, "private-app-b  10.0.12.0/24\n[kubernetes.io/role/internal-elb = 1]") {
+        rectangle "  Para ALB/NLB\n  internos" as note_app_b #1A476F
+      }
+
+      PrivateSubnetGroup(data_b, "private-data-b  10.0.22.0/24") {
+        rectangle "  Datos / DB\n  sin tags ELB" as note_data_b #1A476F
+      }
+    }
+
+    ' --- Security Group ---
+    SecurityGroupGroup(sg_eps, "SG: eks-endpoints-sg\nTCP 443 desde 10.0.0.0/16")
+
+  }
+
+  ' ==================================================================
+  ' VPC Endpoints — paso01
+  ' ==================================================================
+  rectangle "  VPC Endpoints (Interface) — paso01\n══════════════════════════════════\nECR API · ECR DKR · STS · CloudWatch Logs\nEC2 · EKS · ELB" as VPCE_PKG #569A31
+
+  SimpleStorageService(s3_ep, "S3 Gateway Endpoint", "")
+}
+
+' ==================================================================
+' NOTA: paso02 — Validacion de tags
+' ==================================================================
+note right of vpc
+  **Paso 02 — Validación de tags EKS**
+  ═══════════════════════════════
+  **Todas las subnets:**
+  • kubernetes.io/cluster/laboratorio-eks = shared
+
+  **Subnets públicas:**
+  • kubernetes.io/role/elb = 1
+
+  **Subnets privadas app:**
+  • kubernetes.io/role/internal-elb = 1
+
+  ⚠ Sin estos tags, los Services tipo
+  LoadBalancer quedan en <pending>.
+end note
+
+' ==================================================================
+' CONEXIONES
+' ==================================================================
+LOCAL -down-> cloud : "AWS Academy\ncredentials"
+
+iam_cluster -[hidden]down-> vpc
+iam_node -[hidden]down-> vpc
+
+igw -[#blue]-> pub_a
+igw -[#blue]-> pub_b
+
+sg_eps -right-> app_a
+sg_eps -right-> app_b
+
+VPCE_PKG -[#green]-> app_a
+VPCE_PKG -[#green]-> app_b
+
+s3_ep -[#green]-> vpc
+
+footer **Bloque 1 completado**  VPC + IAM + Subnets + Endpoints + Tags EKS validados  Listo para el cluster EKS
+@enduml

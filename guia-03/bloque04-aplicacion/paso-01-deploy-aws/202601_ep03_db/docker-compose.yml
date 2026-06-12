@@ -1,0 +1,27 @@
+services:
+  alumnos-db:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: alumnos-db:latest
+    container_name: alumnos-db
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: alumnos
+      POSTGRES_USER: alumnos_user
+      POSTGRES_PASSWORD: alumnos_pass
+    volumes:
+      - ./pgdata/data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U alumnos_user -d alumnos"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - alumnos-network
+
+networks:
+  alumnos-network:
+    external: true

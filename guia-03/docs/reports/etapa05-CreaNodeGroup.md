@@ -1,0 +1,95 @@
+# Reporte de Evidencia: Validación/Creación de NodeGroup SPOT
+
+**Fecha:** 2026-06-11 13:31:48
+**Etapa:** etapa05-CreaNodeGroup
+
+---
+
+## Resumen
+
+
+---
+
+### Paso 1: Detalle del NodeGroup
+
+**IE Relacionado:** IE1
+**Hora ejecución:** 2026-06-11 13:31:51
+
+```
+$ aws eks describe-nodegroup --cluster-name laboratorio-eks --nodegroup-name laboratorio-nodegroup --region us-east-1 --query 'nodegroup.{Name:nodegroupName,Status:status,InstanceType:instanceTypes[0],Capacity:capacityType,ScalingMin:scalingConfig.minSize,ScalingMax:scalingConfig.maxSize,ScalingDesired:scalingConfig.desiredSize,Subnets:subnets[0]}' --output table
+
+------------------------------------------------
+|               DescribeNodegroup              |
++-----------------+----------------------------+
+|  Capacity       |  SPOT                      |
+|  InstanceType   |  t3.large                  |
+|  Name           |  laboratorio-nodegroup     |
+|  ScalingDesired |  1                         |
+|  ScalingMax     |  3                         |
+|  ScalingMin     |  1                         |
+|  Status         |  ACTIVE                    |
+|  Subnets        |  subnet-031653e7200b5ffad  |
++-----------------+----------------------------+
+```
+
+**Estado:** ✅ Completado
+
+
+---
+
+### Paso 2: Nodos Kubernetes Ready
+
+**IE Relacionado:** IE1
+**Hora ejecución:** 2026-06-11 13:31:53
+
+```
+$ kubectl get nodes -o wide
+
+NAME                         STATUS   ROLES    AGE   VERSION                INTERNAL-IP   EXTERNAL-IP   OS-IMAGE                        KERNEL-VERSION                    CONTAINER-RUNTIME
+ip-10-0-12-36.ec2.internal   Ready    <none>   30h   v1.33.11-eks-3385e9b   10.0.12.36    <none>        Amazon Linux 2023.11.20260526   6.12.88-119.157.amzn2023.x86_64   containerd://2.2.3+unknown
+```
+
+**Estado:** ✅ Completado
+
+
+---
+
+### Paso 3: Pods del sistema saludables
+
+**IE Relacionado:** IE1
+**Hora ejecución:** 2026-06-11 13:31:55
+
+```
+$ kubectl get pods -n kube-system -o wide
+
+NAME                              READY   STATUS    RESTARTS   AGE   IP            NODE                         NOMINATED NODE   READINESS GATES
+aws-node-nqw7c                    2/2     Running   0          30h   10.0.12.36    ip-10-0-12-36.ec2.internal   <none>           <none>
+coredns-55b4f5c59c-47kj2          1/1     Running   0          30h   10.0.12.34    ip-10-0-12-36.ec2.internal   <none>           <none>
+coredns-55b4f5c59c-9rkwt          1/1     Running   0          30h   10.0.12.139   ip-10-0-12-36.ec2.internal   <none>           <none>
+kube-proxy-gp4hf                  1/1     Running   0          30h   10.0.12.36    ip-10-0-12-36.ec2.internal   <none>           <none>
+metrics-server-68db5bc85f-bc9j6   1/1     Running   0          30h   10.0.12.10    ip-10-0-12-36.ec2.internal   <none>           <none>
+metrics-server-68db5bc85f-ttx5m   1/1     Running   0          30h   10.0.12.130   ip-10-0-12-36.ec2.internal   <none>           <none>
+```
+
+**Estado:** ✅ Completado
+
+
+---
+
+## Resumen final
+
+- **Inicio ejecución:** 2026-06-11 13:31:48
+- **Fin ejecución:** 2026-06-11 13:31:57
+- **Total pasos ejecutados:** 3
+
+### ⏱️ Línea de tiempo de la etapa
+
+| Evento | Hora |
+|---|---|
+| **Inicio** | 2026-06-11 13:31:48 |
+| **Fin** | 2026-06-11 13:31:57 |
+| **Duración total** | 9s |
+
+<!-- ================================================== -->
+<!-- Fin del reporte de evidencia                       -->
+<!-- ================================================== -->

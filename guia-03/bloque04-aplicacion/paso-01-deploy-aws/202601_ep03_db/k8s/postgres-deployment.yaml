@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: alumnos-db
+  namespace: alumnos
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: alumnos-db
+  template:
+    metadata:
+      labels:
+        app: alumnos-db
+    spec:
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: postgres
+          image: 461663648686.dkr.ecr.us-east-1.amazonaws.com/alumnos-db:latest # Colocar uri de tu imagen en ECR
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              value: "alumnos"
+            - name: POSTGRES_USER
+              value: "alumnos_user"
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: POSTGRES_PASSWORD
+
+          # HEALTH CHECKS (PROBES)
+          readinessProbe:
+            tcpSocket:
+              port: 5432
+            initialDelaySeconds: 20
+            periodSeconds: 10
+
+          livenessProbe:
+            tcpSocket:
+              port: 5432
+            initialDelaySeconds: 40
+            periodSeconds: 15
+
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+      volumes:
+        - name: data
+          emptyDir: {}

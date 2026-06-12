@@ -1,0 +1,60 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: alumnos-backend
+  namespace: alumnos
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: alumnos-backend
+  template:
+    metadata:
+      labels:
+        app: alumnos-backend
+    spec:
+      containers:
+        - name: backend
+          image: 461663648686.dkr.ecr.us-east-1.amazonaws.com/alumnos-backend:latest 
+          ports:
+            - containerPort: 8080
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: "prod"
+            - name: DB_URL
+              value: "jdbc:postgresql://alumnos-db:5432/alumnos"
+            - name: DB_USERNAME
+              value: "alumnos_user"
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: POSTGRES_PASSWORD
+
+          # Se agrega Resource para que Metrics Server calcule el % de CPU y Memoria para escalar 
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+
+          # HEALTH CHECKS (PROBES)
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8080
+            initialDelaySeconds: 50
+            periodSeconds: 10
+            failureThreshold: 6
+
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8080
+            initialDelaySeconds: 70
+            periodSeconds: 15
+            failureThreshold: 6

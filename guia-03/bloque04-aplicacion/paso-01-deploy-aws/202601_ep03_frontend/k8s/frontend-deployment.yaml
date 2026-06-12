@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: alumnos-frontend
+  namespace: alumnos
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: alumnos-frontend
+  template:
+    metadata:
+      labels:
+        app: alumnos-frontend
+    spec:
+      containers:
+        - name: frontend
+          image: 461663648686.dkr.ecr.us-east-1.amazonaws.com/alumnos-frontend:latest # Colocar uri de tu imagen en ECR
+          ports:
+            - containerPort: 80
+          env:
+            - name: BACKEND_HOST
+              value: "alumnos-backend"
+
+          # Se agrega Resource para que Metrics Server calcule el % de CPU y Memoria para escalar 
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
+            limits:
+              cpu: "300m"
+              memory: "256Mi"
+
+          # HEALTH CHECKS
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 6
+
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 20
+            periodSeconds: 15
+            failureThreshold: 6
+

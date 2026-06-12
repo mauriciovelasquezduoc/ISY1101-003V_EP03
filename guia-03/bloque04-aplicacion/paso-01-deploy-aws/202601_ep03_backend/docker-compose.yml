@@ -1,0 +1,26 @@
+# docker-compose standalone del backend
+# Asume que alumnos-db ya esta corriendo en la red compartida alumnos-network
+# Para levantar la DB: cd ../alumnos-db && docker compose up -d
+# Para crear la red (solo la primera vez): docker network create alumnos-network
+services:
+
+  alumnos-backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: alumnos-backend:latest
+    container_name: alumnos-backend
+    environment:
+      SPRING_PROFILES_ACTIVE:     dev
+      SPRING_DATASOURCE_URL:      jdbc:postgresql://alumnos-db:5432/alumnos
+      SPRING_DATASOURCE_USERNAME: alumnos_user
+      SPRING_DATASOURCE_PASSWORD: alumnos_pass
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+    networks:
+      - alumnos-network
+
+networks:
+  alumnos-network:
+    external: true

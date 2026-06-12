@@ -1,0 +1,122 @@
+=================================================================
+  REPORTE DE LABORATORIO — Sun May 31 02:44:47 UTC 2026
+  Alumno: ________________________
+=================================================================
+
+=== 1. IDENTIDAD AWS ===
+{
+    "UserId": "AROAYIFAMLZ7KNEBJXWQE:user5064886=_Student_View__Mauricio_Velasquez",
+    "Account": "567272038014",
+    "Arn": "arn:aws:sts::567272038014:assumed-role/voclabs/user5064886=_Student_View__Mauricio_Velasquez"
+}
+
+=== 2. VPC ===
+CREATE_COMPLETE
+
+=== 3. SUBNETS ===
+
+=== 4. VPC ENDPOINTS ===
+---------------------------------------------------------------
+|                    DescribeVpcEndpoints                     |
++------------------------------------------------+------------+
+|  com.amazonaws.us-east-1.s3                    |  available |
+|  com.amazonaws.us-east-1.sts                   |  available |
+|  com.amazonaws.us-east-1.ecr.dkr               |  available |
+|  com.amazonaws.us-east-1.eks                   |  available |
+|  com.amazonaws.us-east-1.ec2                   |  available |
+|  com.amazonaws.us-east-1.logs                  |  available |
+|  com.amazonaws.us-east-1.ecr.api               |  available |
+|  com.amazonaws.us-east-1.elasticloadbalancing  |  available |
++------------------------------------------------+------------+
+
+=== 5. CLUSTER EKS ===
+------------------------------------------
+|             DescribeCluster            |
++------------------+---------+-----------+
+|       Name       | Status  |  Version  |
++------------------+---------+-----------+
+|  laboratorio-eks |  ACTIVE |  1.33     |
++------------------+---------+-----------+
+
+=== 6. NODEGROUP ===
+---------------------------------------------------------------------------
+|                            DescribeNodegroup                            |
++----------+------+------+-------------------------+---------+------------+
+| Capacity | Max  | Min  |          Name           | Status  |   Type     |
++----------+------+------+-------------------------+---------+------------+
+|  SPOT    |  3   |  1   |  laboratorio-nodegroup  |  ACTIVE |  t3.large  |
++----------+------+------+-------------------------+---------+------------+
+
+=== 7. NODOS KUBERNETES ===
+NAME                         STATUS   ROLES    AGE   VERSION                INTERNAL-IP   EXTERNAL-IP   OS-IMAGE                        KERNEL-VERSION                    CONTAINER-RUNTIME
+ip-10-0-11-58.ec2.internal   Ready    <none>   42m   v1.33.11-eks-3385e9b   10.0.11.58    <none>        Amazon Linux 2023.11.20260526   6.12.88-119.157.amzn2023.x86_64   containerd://2.2.3+unknown
+
+=== 8. REPOSITORIOS ECR ===
+--- alumnos-db ---
+567272038014.dkr.ecr.us-east-1.amazonaws.com/alumnos-db
+------------
+|ListImages|
++----------+
+|  eks-v1  |
++----------+
+--- alumnos-backend ---
+567272038014.dkr.ecr.us-east-1.amazonaws.com/alumnos-backend
+------------
+|ListImages|
++----------+
+|  eks-v1  |
++----------+
+--- alumnos-frontend ---
+567272038014.dkr.ecr.us-east-1.amazonaws.com/alumnos-frontend
+------------
+|ListImages|
++----------+
+|  eks-v1  |
++----------+
+
+=== 9. NAMESPACE ALUMNOS ===
+NAME     STATUS   AGE
+alumnos   Active   35m
+
+=== 10. DEPLOYMENTS ===
+NAME              READY   UP-TO-DATE   AVAILABLE   AGE
+alumnos-backend    2/2     2            2           34m
+alumnos-db         1/1     1            1           34m
+alumnos-frontend   2/2     2            2           34m
+
+=== 11. SERVICES ===
+NAME              TYPE           CLUSTER-IP      EXTERNAL-IP                                                               PORT(S)        AGE
+alumnos-backend    ClusterIP      172.20.62.198   <none>                                                                    3001/TCP       34m
+alumnos-db         ClusterIP      None            <none>                                                                    3306/TCP       35m
+alumnos-frontend   LoadBalancer   172.20.123.7    a5d87d388be4c440192b1e41aebf7073-1319560992.us-east-1.elb.amazonaws.com   80:31865/TCP   34m
+
+=== 12. PODS ===
+NAME                               READY   STATUS    RESTARTS   AGE   IP            NODE                         NOMINATED NODE   READINESS GATES
+alumnos-backend-6d7789595b-dcz55    1/1     Running   0          34m   10.0.11.168   ip-10-0-11-58.ec2.internal   <none>           <none>
+alumnos-backend-6d7789595b-hdv6g    1/1     Running   0          34m   10.0.11.116   ip-10-0-11-58.ec2.internal   <none>           <none>
+alumnos-db-7b98d4fcf-gd44n          1/1     Running   0          34m   10.0.11.108   ip-10-0-11-58.ec2.internal   <none>           <none>
+alumnos-frontend-757984d475-fs467   1/1     Running   0          34m   10.0.11.182   ip-10-0-11-58.ec2.internal   <none>           <none>
+alumnos-frontend-757984d475-l56nj   1/1     Running   0          34m   10.0.11.74    ip-10-0-11-58.ec2.internal   <none>           <none>
+
+=== 13. HPA ===
+NAME                  REFERENCE                    TARGETS       MINPODS   MAXPODS   REPLICAS   AGE
+alumnos-backend-hpa    Deployment/alumnos-backend    cpu: 1%/70%   2         10        2          34m
+alumnos-frontend-hpa   Deployment/alumnos-frontend   cpu: 2%/60%   2         6         2          34m
+
+=== 14. URL DE LA APLICACION ===
+  http://a5d87d388be4c440192b1e41aebf7073-1319560992.us-east-1.elb.amazonaws.com
+
+=================================================================
+  CHECKLIST DE EVALUACION
+=================================================================
+
+  [X] VPC laboratorio-vpc-completa          (CREATE_COMPLETE)
+  [X] Cluster EKS ACTIVE                   (ACTIVE)
+  [X] NodeGroup ACTIVE                     (ACTIVE)
+  [X] ECR: alumnos-db                       (567272038014.dkr.ecr.us-east-1.amazonaws.com/alumnos-db)
+  [X] Deployments en namespace alumnos      (3 encontrados)
+  [X] App accesible via LoadBalancer       (a5d87d388be4c440192b1e41aebf7073-1319560992.us-east-1.elb.amazonaws.com)
+
+=================================================================
+  FIN DEL REPORTE
+=================================================================
