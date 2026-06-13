@@ -1,6 +1,6 @@
 # Reporte de Evidencia: Validación de Entorno y Prerrequisitos
 
-**Fecha:** 2026-06-11 13:15:42
+**Fecha:** 2026-06-13 15:38:58
 **Etapa:** etapa01-ValidaEntorno
 
 ---
@@ -13,7 +13,7 @@
 ### Paso 1: Validar credenciales AWS
 
 **IE Relacionado:** IE1
-**Hora ejecución:** 2026-06-11 13:15:49
+**Hora ejecución:** 2026-06-13 15:39:06
 
 ```
 $ aws sts get-caller-identity
@@ -33,7 +33,7 @@ $ aws sts get-caller-identity
 ### Paso 2: Versión de herramientas
 
 **IE Relacionado:** IE1
-**Hora ejecución:** 2026-06-11 13:15:50
+**Hora ejecución:** 2026-06-13 15:39:08
 
 ```
 $ echo '--- AWS CLI ---'; aws --version; echo '--- kubectl ---'; kubectl version --client; echo '--- Docker ---'; docker --version
@@ -55,7 +55,7 @@ Docker version 29.5.3, build d1c06ef
 ### Paso 3: Validar acceso IAM
 
 **IE Relacionado:** IE1
-**Hora ejecución:** 2026-06-11 13:15:51
+**Hora ejecución:** 2026-06-13 15:39:10
 
 ```
 $ aws iam list-roles --max-items 1 >/dev/null 2>&1 && echo 'OK: acceso IAM' || echo 'ERROR: sin permisos IAM'
@@ -69,7 +69,7 @@ OK: acceso IAM
 ### Paso 4: Buscar roles EKS del laboratorio
 
 **IE Relacionado:** IE1
-**Hora ejecución:** 2026-06-11 13:15:53
+**Hora ejecución:** 2026-06-13 15:39:12
 
 ```
 $ echo '--- LabEKSClusterRole ---'; aws iam list-roles --query "Roles[?contains(RoleName, 'LabEksClusterRole')].RoleName" --output table; echo '--- LabEKSNodeRole ---'; aws iam list-roles --query "Roles[?contains(RoleName, 'LabEksNodeRole')].RoleName" --output table
@@ -96,16 +96,13 @@ $ echo '--- LabEKSClusterRole ---'; aws iam list-roles --query "Roles[?contains(
 ### Paso 5: Validar acceso EKS
 
 **IE Relacionado:** IE1
-**Hora ejecución:** 2026-06-11 13:15:57
+**Hora ejecución:** 2026-06-13 15:39:17
 
 ```
 $ aws eks list-clusters --region us-east-1
 
 {
-    "clusters": [
-        "ep3-devops",
-        "laboratorio-eks"
-    ]
+    "clusters": []
 }
 ```
 
@@ -116,17 +113,17 @@ $ aws eks list-clusters --region us-east-1
 
 ## Resumen final
 
-- **Inicio ejecución:** 2026-06-11 13:15:42
-- **Fin ejecución:** 2026-06-11 13:15:58
+- **Inicio ejecución:** 2026-06-13 15:38:58
+- **Fin ejecución:** 2026-06-13 15:39:19
 - **Total pasos ejecutados:** 5
 
 ### ⏱️ Línea de tiempo de la etapa
 
 | Evento | Hora |
 |---|---|
-| **Inicio** | 2026-06-11 13:15:42 |
-| **Fin** | 2026-06-11 13:15:58 |
-| **Duración total** | 16s |
+| **Inicio** | 2026-06-13 15:38:58 |
+| **Fin** | 2026-06-13 15:39:19 |
+| **Duración total** | 21s |
 
 <!-- ================================================== -->
 <!-- Fin del reporte de evidencia                       -->

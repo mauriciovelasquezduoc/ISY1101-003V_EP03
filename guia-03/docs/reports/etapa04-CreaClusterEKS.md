@@ -1,6 +1,6 @@
 # Reporte de Evidencia: Creación de Cluster EKS y conexión kubectl
 
-**Fecha:** 2026-06-11 13:30:42
+**Fecha:** 2026-06-13 15:57:00
 **Etapa:** etapa04-CreaClusterEKS
 
 ---
@@ -10,9 +10,9 @@
 
 **Parámetros del clúster:**  
 - **Cluster:** `laboratorio-eks`
-- **VPC:** `vpc-0e0bde9b896e27970`
-- **Subnets Públicas:** `subnet-03ed152fa05c8b4da`, `subnet-025b1820365ef31e5`
-- **Subnets Privadas App:** `subnet-031653e7200b5ffad`, `subnet-0ad54fb089b0b1d8f`
+- **VPC:** `vpc-040dcd476deec12ed`
+- **Subnets Públicas:** `subnet-0f86e23b9f3969288`, `subnet-0240dea3a5e912dfb`
+- **Subnets Privadas App:** `subnet-0dbc6460b11a415a4`, `subnet-04990711edfb8419c`
 - **Cluster Role:** `arn:aws:iam::461663648686:role/c213284a5393391l15462824t1w461663-LabEksClusterRole-6kkLQWk5dCOf`
 - **Node Role:** `arn:aws:iam::461663648686:role/c213284a5393391l15462824t1w461663648-LabEksNodeRole-qer5VPtPBg9Y`
 - **Región:** `us-east-1`
@@ -24,7 +24,7 @@
 ### Paso 1: Estado del cluster EKS
 
 **IE Relacionado:** IE1
-**Hora ejecución:** 2026-06-11 13:30:59
+**Hora ejecución:** 2026-06-13 16:24:01
 
 ```
 $ aws eks describe-cluster --name laboratorio-eks --region us-east-1 --query 'cluster.{Name:name,Status:status,Version:version,Endpoint:endpoint,Role:roleArn}' --output table
@@ -32,7 +32,7 @@ $ aws eks describe-cluster --name laboratorio-eks --region us-east-1 --query 'cl
 -----------------------------------------------------------------------------------------------------------------
 |                                                DescribeCluster                                                |
 +----------+----------------------------------------------------------------------------------------------------+
-|  Endpoint|  https://7C20BC5BD4377B9655DFED85B3CE99F3.gr7.us-east-1.eks.amazonaws.com                          |
+|  Endpoint|  https://90138C64322EC9259A6FD67DA1697589.gr7.us-east-1.eks.amazonaws.com                          |
 |  Name    |  laboratorio-eks                                                                                   |
 |  Role    |  arn:aws:iam::461663648686:role/c213284a5393391l15462824t1w461663-LabEksClusterRole-6kkLQWk5dCOf   |
 |  Status  |  ACTIVE                                                                                            |
@@ -48,7 +48,7 @@ $ aws eks describe-cluster --name laboratorio-eks --region us-east-1 --query 'cl
 ### Paso 2: Addons EKS instalados
 
 **IE Relacionado:** IE1
-**Hora ejecución:** 2026-06-11 13:31:01
+**Hora ejecución:** 2026-06-13 16:24:03
 
 ```
 $ aws eks list-addons --cluster-name laboratorio-eks --region us-east-1 --output table
@@ -73,16 +73,16 @@ $ aws eks list-addons --cluster-name laboratorio-eks --region us-east-1 --output
 ### Paso 3: Namespaces de Kubernetes
 
 **IE Relacionado:** IE2
-**Hora ejecución:** 2026-06-11 13:31:03
+**Hora ejecución:** 2026-06-13 16:24:06
 
 ```
 $ kubectl get namespaces
 
 NAME              STATUS   AGE
-default           Active   37h
-kube-node-lease   Active   37h
-kube-public       Active   37h
-kube-system       Active   37h
+default           Active   6m35s
+kube-node-lease   Active   6m35s
+kube-public       Active   6m35s
+kube-system       Active   6m35s
 ```
 
 
@@ -91,18 +91,18 @@ kube-system       Active   37h
 ### Paso 4: Pods del sistema (kube-system)
 
 **IE Relacionado:** IE2
-**Hora ejecución:** 2026-06-11 13:31:05
+**Hora ejecución:** 2026-06-13 16:24:09
 
 ```
 $ kubectl get pods -n kube-system
 
 NAME                              READY   STATUS    RESTARTS   AGE
-aws-node-nqw7c                    2/2     Running   0          30h
-coredns-55b4f5c59c-47kj2          1/1     Running   0          30h
-coredns-55b4f5c59c-9rkwt          1/1     Running   0          30h
-kube-proxy-gp4hf                  1/1     Running   0          30h
-metrics-server-68db5bc85f-bc9j6   1/1     Running   0          30h
-metrics-server-68db5bc85f-ttx5m   1/1     Running   0          30h
+aws-node-zxpp9                    2/2     Running   0          79s
+coredns-55b4f5c59c-6sgcp          1/1     Running   0          4m57s
+coredns-55b4f5c59c-vltkz          1/1     Running   0          4m57s
+kube-proxy-gjcfw                  1/1     Running   0          79s
+metrics-server-68db5bc85f-bq4vc   1/1     Running   0          2m18s
+metrics-server-68db5bc85f-bwnsx   1/1     Running   0          2m18s
 ```
 
 
@@ -110,17 +110,17 @@ metrics-server-68db5bc85f-ttx5m   1/1     Running   0          30h
 
 ## Resumen final
 
-- **Inicio ejecución:** 2026-06-11 13:30:42
-- **Fin ejecución:** 2026-06-11 13:31:07
+- **Inicio ejecución:** 2026-06-13 15:57:00
+- **Fin ejecución:** 2026-06-13 16:24:11
 - **Total pasos ejecutados:** 4
 
 ### ⏱️ Línea de tiempo de la etapa
 
 | Evento | Hora |
 |---|---|
-| **Inicio** | 2026-06-11 13:30:42 |
-| **Fin** | 2026-06-11 13:31:07 |
-| **Duración total** | 25s |
+| **Inicio** | 2026-06-13 15:57:00 |
+| **Fin** | 2026-06-13 16:24:11 |
+| **Duración total** | 27m 11s |
 
 <!-- ================================================== -->
 <!-- Fin del reporte de evidencia                       -->

@@ -134,7 +134,7 @@ echo "  ✔ Account ID actualizado en manifests."
 SECRETS_FILE="$SCRIPT_DIR/../secrets.txt"
 if [ -f "$SECRETS_FILE" ]; then
   echo "  Cargando secrets desde $SECRETS_FILE ..."
-  while IFS='=' read -r key value; do
+  while IFS='=' read -r key value || [ -n "$key" ]; do
     # Saltar líneas vacías y comentarios
     [ -z "$key" ] && continue
     [[ "$key" == \#* ]] && continue
@@ -190,6 +190,42 @@ echo "============================================================="
 echo ""
 
 K8S_BASE="../../bloque04-aplicacion/paso-01-deploy-aws"
+wait_deployment_ready() {
+  local nombre="$1"
+  local deployment="$2"
+  local label="$3"
+
+  echo "  Esperando a que $nombre este activo antes de continuar..."
+  local ready=false
+  for intento in {1..60}; do
+    echo ""
+    echo "    Estado de pods $nombre - intento $intento/60:"
+    kubectl get pods -n "$NAMESPACE" -l "app=$label" -o wide 2>/dev/null || echo "    (aun no hay pods para app=$label)"
+
+    if kubectl get deployment "$deployment" -n "$NAMESPACE" &>/dev/null; then
+      if kubectl rollout status "deployment/$deployment" -n "$NAMESPACE" --timeout=10s; then
+        ready=true
+        break
+      fi
+    else
+      echo "    deployment/$deployment aun no existe"
+      sleep 10
+    fi
+  done
+
+  if [ "$ready" != true ]; then
+    echo ""
+    echo "ERROR: $nombre no estuvo activo tras 10 minutos."
+    echo "Revisa el estado con:"
+    echo "  kubectl get pods -n $NAMESPACE -l app=$label -o wide"
+    echo "  kubectl describe deployment $deployment -n $NAMESPACE"
+    exit 1
+  fi
+
+  echo ""
+  echo "  $nombre activo. Continuando."
+}
+
 for repo in 202601_ep03_db 202601_ep03_backend 202601_ep03_frontend; do
   REPO_DIR="$SCRIPT_DIR/$K8S_BASE/$repo"
   if [ -d "$REPO_DIR/.git" ]; then
@@ -261,6 +297,16 @@ echo ""
 for repo in 202601_ep03_db 202601_ep03_backend 202601_ep03_frontend; do
   REPO_DIR="$SCRIPT_DIR/$K8S_BASE/$repo"
   echo "--- $repo ---"
+
+  if [ "$repo" = "202601_ep03_backend" ]; then
+    cd "$SCRIPT_DIR"
+    wait_deployment_ready "la base de datos" "alumnos-db" "alumnos-db"
+  fi
+
+  if [ "$repo" = "202601_ep03_frontend" ]; then
+    cd "$SCRIPT_DIR"
+    wait_deployment_ready "el backend" "alumnos-backend" "alumnos-backend"
+  fi
 
   cd "$REPO_DIR"
 

@@ -1,6 +1,6 @@
 # Reporte de Evidencia: Creación de repositorios en Amazon ECR
 
-**Fecha:** 2026-06-11 13:32:24
+**Fecha:** 2026-06-13 16:36:43
 **Etapa:** etapa07-PublicaECR
 
 ---
@@ -17,20 +17,20 @@
 ### Paso 1: Repositorios ECR creados
 
 **IE Relacionado:** IE2
-**Hora ejecución:** 2026-06-11 13:32:37
+**Hora ejecución:** 2026-06-13 16:36:56
 
 ```
-$ for repo in alumnos-db alumnos-app alumnos-web; do echo '---'; echo $repo; aws ecr describe-repositories --repository-names $repo --region us-east-1 --query 'repositories[0].repositoryUri' --output text; aws ecr list-images --repository-name $repo --region us-east-1 --query 'imageIds[*].imageTag' --output table 2>/dev/null || echo '(sin imágenes aún)'; done
+$ for repo in alumnos-db alumnos-backend alumnos-frontend; do echo '---'; echo $repo; aws ecr describe-repositories --repository-names $repo --region us-east-1 --query 'repositories[0].repositoryUri' --output text; aws ecr list-images --repository-name $repo --region us-east-1 --query 'imageIds[*].imageTag' --output table 2>/dev/null || echo '(sin imágenes aún)'; done
 
 ---
 alumnos-db
 461663648686.dkr.ecr.us-east-1.amazonaws.com/alumnos-db
 ---
-alumnos-app
-461663648686.dkr.ecr.us-east-1.amazonaws.com/alumnos-app
+alumnos-backend
+461663648686.dkr.ecr.us-east-1.amazonaws.com/alumnos-backend
 ---
-alumnos-web
-461663648686.dkr.ecr.us-east-1.amazonaws.com/alumnos-web
+alumnos-frontend
+461663648686.dkr.ecr.us-east-1.amazonaws.com/alumnos-frontend
 ```
 
 **Estado:** ✅ Completado
@@ -41,9 +41,9 @@ alumnos-web
 ```bash
 aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 461663648686.dkr.ecr.us-east-1.amazonaws.com
 
-docker build -t alumnos-app .
-docker tag alumnos-app:latest 461663648686.dkr.ecr.us-east-1.amazonaws.com/alumnos-app:latest
-docker push 461663648686.dkr.ecr.us-east-1.amazonaws.com/alumnos-app:latest
+docker build -t alumnos-backend .
+docker tag alumnos-backend:latest 461663648686.dkr.ecr.us-east-1.amazonaws.com/alumnos-backend:latest
+docker push 461663648686.dkr.ecr.us-east-1.amazonaws.com/alumnos-backend:latest
 ```
 
 > Las imágenes se publicarán automáticamente mediante GitHub Actions
@@ -54,17 +54,17 @@ docker push 461663648686.dkr.ecr.us-east-1.amazonaws.com/alumnos-app:latest
 
 ## Resumen final
 
-- **Inicio ejecución:** 2026-06-11 13:32:24
-- **Fin ejecución:** 2026-06-11 13:32:47
+- **Inicio ejecución:** 2026-06-13 16:36:43
+- **Fin ejecución:** 2026-06-13 16:37:07
 - **Total pasos ejecutados:** 1
 
 ### ⏱️ Línea de tiempo de la etapa
 
 | Evento | Hora |
 |---|---|
-| **Inicio** | 2026-06-11 13:32:24 |
-| **Fin** | 2026-06-11 13:32:47 |
-| **Duración total** | 23s |
+| **Inicio** | 2026-06-13 16:36:43 |
+| **Fin** | 2026-06-13 16:37:07 |
+| **Duración total** | 24s |
 
 <!-- ================================================== -->
 <!-- Fin del reporte de evidencia                       -->
