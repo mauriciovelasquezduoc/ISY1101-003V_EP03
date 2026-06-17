@@ -95,17 +95,14 @@ jobs:
       - name: Login a Amazon ECR
         id: login-ecr-deploy
         uses: aws-actions/amazon-ecr-login@v2
-      - name: Deducir variables de EKS
-        env:
-          AWS_REGION: ${{ secrets.AWS_REGION }}
+      - name: Configurar nombre del cluster EKS
         run: |
-          CLUSTER=$(aws eks list-clusters --region "$AWS_REGION" --query 'clusters[0]' --output text)
-          if [ -z "$CLUSTER" ] || [ "$CLUSTER" = "None" ]; then
-            echo "ERROR: No se encontro ningun cluster EKS en la region $AWS_REGION"
+          if [ -z "${{ secrets.EKS_CLUSTER_NAME }}" ]; then
+            echo "ERROR: Falta EKS_CLUSTER_NAME en GitHub Secrets"
             exit 1
           fi
-          echo "EKS_CLUSTER_NAME=$CLUSTER" >> $GITHUB_ENV
-          echo "  Cluster detectado: $CLUSTER"
+          echo "EKS_CLUSTER_NAME=${{ secrets.EKS_CLUSTER_NAME }}" >> $GITHUB_ENV
+          echo "  Cluster: ${{ secrets.EKS_CLUSTER_NAME }}"
       - name: Instalar kubectl
         uses: azure/setup-kubectl@v4
         with:

@@ -85,7 +85,7 @@ bash ejecutar.sh
 ## Archivos locales usados
 
 - `templates/vpc.yaml`: template CloudFormation de VPC copiado desde guia-03.
-- `templates/fase_4_cluster_eks.yaml`: template CloudFormation de EKS copiado desde guia-03.
+- `templates/cluster_eks.yaml`: template CloudFormation de EKS copiado desde guia-03.
 - `../secrets.txt`: credenciales/variables de laboratorio ubicadas en la raiz de `guia-04`, si existe.
 
 ## Salida esperada

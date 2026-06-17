@@ -43,6 +43,7 @@ aws_session_token=XXXX
 SONAR_TOKEN=XXXX
 SNYK_TOKEN=XXXX
 AWS_REGION=us-east-1
+EKS_CLUSTER_NAME=laboratorio-ep03-eks
 GITHUB_TOKEN=ghp_XXXX
 GITHUB_DATABASE=https://github.com/usuario/evp03_ing_devops_database.git
 GITHUB_BACKEND=https://github.com/usuario/evp03_ing_devops_backend.git

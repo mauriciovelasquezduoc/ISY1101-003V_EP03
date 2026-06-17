@@ -13,6 +13,8 @@ set -e
 
 SECRETS_FILE="../secrets.txt"
 
+dos2unix $SECRETS_FILE
+
 banner() {
   echo ""
   echo "========================================="
@@ -165,6 +167,7 @@ SECRET_NAMES=(
   "AWS_SECRET_ACCESS_KEY"
   "AWS_SESSION_TOKEN"
   "AWS_REGION"
+  "EKS_CLUSTER_NAME"
   "SONAR_TOKEN"
   "SNYK_TOKEN"
 )

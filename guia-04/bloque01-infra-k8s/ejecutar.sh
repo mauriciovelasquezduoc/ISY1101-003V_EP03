@@ -24,6 +24,8 @@ VPC_TEMPLATE="$SCRIPT_DIR/templates/vpc.yaml"
 EKS_TEMPLATE="$SCRIPT_DIR/templates/cluster_eks.yaml"
 SECRETS_FILE="$GUIA04_DIR/secrets.txt"
 
+dos2unix $SECRETS_FILE
+
 mkdir -p "$REPORT_DIR"
 
 REPORT_LINES=()

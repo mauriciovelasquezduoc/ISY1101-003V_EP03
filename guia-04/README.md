@@ -1,4 +1,4 @@
-# Bloque 06 — Pasos
+# Pasos
 
 ## Paso 01
 
@@ -13,11 +13,14 @@ aws_session_token=
 SONAR_TOKEN=
 SNYK_TOKEN=
 AWS_REGION=us-east-1
+EKS_CLUSTER_NAME=laboratorio-ep03-eks
 GITHUB_TOKEN=
 GITHUB_DATABASE=
 GITHUB_BACKEND=
 GITHUB_FRONTEND=
 ```
+
+**Las variables de repositorios se agregaran posteriormente**
 
 ## PASO 02
 

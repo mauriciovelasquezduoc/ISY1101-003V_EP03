@@ -21,6 +21,8 @@ bloque05-github-repos/
 
 ### Clonar DATABASE
 
+**Se debe cambiar TU_USUARIO por el usuario de github**
+
 ```bash
 
 git clone https://github.com/TU_USUARIO/NOMBREPERSONALIZADOREPO_DATABASE.git
@@ -39,6 +41,8 @@ git clone https://github.com/TU_USUARIO/NOMBREPERSONALIZADOREPO_BACKEND.git
 git clone https://github.com/TU_USUARIO/NOMBREPERSONALIZADOREPO_FRONTEND.git
 
 ```
+
+![1781666947202](image/README/1781666947202.png)
 
 ## Paso 2: Copiar el workflow
 
@@ -80,7 +84,6 @@ git push origin main
 3. Verás el workflow ejecutándose automáticamente
 4. Hacer clic en el workflow para ver el progreso de cada paso
 
-![GitHub Actions](https://docs.github.com/assets/actions/workflow-run/workflow-run-banner-1548721045622.png)
 
 ## Paso 4: Verificar el despliegue
 

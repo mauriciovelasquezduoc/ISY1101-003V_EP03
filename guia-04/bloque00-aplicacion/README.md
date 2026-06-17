@@ -16,7 +16,7 @@ bloque00-aplicacion/
 
 ## Inicializar los Servicios
 
-**IMPORTANTE:** Ejecutar en este orden específico:
+**IMPORTANTE:** En una terminal nueva de windows (no linux) se debe ejecuar en este orden específico:
 
 ### Paso 1: Base de Datos
 
@@ -49,8 +49,8 @@ Esperar hasta que el contenedor esté verde en Docker Desktop.
 
 Abrir Docker Desktop y verificar que los 3 contenedores estén en estado **Running** (verde):
 
-| Contenedor       | Puerto | Estado esperado |
-| ---------------- | ------ | --------------- |
+| Contenedor    | Puerto | Estado esperado |
+| ------------- | ------ | --------------- |
 | ep03-db       | 5432   | Running (verde) |
 | ep03-backend  | 8080   | Running (verde) |
 | ep03-frontend | 80     | Running (verde) |
@@ -65,11 +65,11 @@ Verás la interfaz del Gestor de Alumnos con la lista de productos.
 
 ## Endpoints Disponibles
 
-| Servicio | URL                           | Descripción          |
-| -------- | ----------------------------- | --------------------- |
-| Frontend | http://localhost              | Interfaz web          |
+| Servicio | URL                        | Descripción          |
+| -------- | -------------------------- | --------------------- |
+| Frontend | http://localhost           | Interfaz web          |
 | Backend  | http://localhost:8080/ep03 | API REST              |
-| Database | localhost:5432                | PostgreSQL (solo red) |
+| Database | localhost:5432             | PostgreSQL (solo red) |
 
 ## Comandos Útiles
 
@@ -159,12 +159,18 @@ gh auth setup-git
 
 ```
 
+**Primero se debe copiar este contenido en un notepad y se debe reeemplazar el dato ghp_xxxxxxxxxxxxxxxxx por el token de github, y luego se debe ejecutar en el linux.**
+
+![1781664061211](image/README/1781664061211.png)
+
 Para cada directorio (database, backend, frontend), crear un repositorio en GitHub:
 
 ### Database
 
+**Se debe copiar el siguiente script en un notepad y reemplazar NOMBREPERSONALIZADOREPO_DATABASE por el nombre que se quiera crear en github  (debe ser uno qu eno exista en github):**
+
 ```bash
-cd database
+cd bloque00-aplicacion/database
 git init
 git add .
 git commit -m "Initial commit: database"
@@ -177,6 +183,8 @@ gh repo create NOMBREPERSONALIZADOREPO_DATABASE \
 ```
 
 ### Backend
+
+Se debe cambiar **NOMBREPERSONALIZADOREPO_DATABASE** por el nombre del repositorio que quieran crear
 
 ```bash
 cd ../backend
@@ -192,6 +200,8 @@ gh repo create  NOMBREPERSONALIZADOREPO_BACKEND \
 ```
 
 ### Frontend
+
+Se debe cambiar **NOMBREPERSONALIZADOREPO_FRONTEND** por el nombre del repositorio que quieran crear
 
 ```bash
 cd ../frontend

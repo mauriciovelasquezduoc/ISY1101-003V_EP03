@@ -54,47 +54,60 @@ FRONTEND_HPA_CPU=60
 ## Scripts Disponibles
 
 ### `apply-all.sh` - Generar y aplicar
+
 ```bash
-./apply-all.sh
+bash apply-all.sh
 ```
+
 1. Lee `values.yaml`
 2. Genera YAMLs en `output/`
 3. Aplica todos los manifiestos a Kubernetes
 
 ### `generate.sh` - Solo generar
+
 ```bash
 ./generate.sh
 ```
+
 Genera los YAMLs sin aplicarlos (útil para inspeccionar).
 
 ### `preview.sh` - Preview
+
 ```bash
 ./preview.sh
 ```
+
 Genera y muestra los archivos generados.
 
 ## Comandos Explicados
 
 ### 1. Namespace
+
 Crea el namespace aislado para todos los recursos del proyecto.
 
 ### 2. Secret
+
 Almacena credenciales en base64 para la base de datos.
 
 ### 3. Base de Datos
+
 - **Deployment**: PostgreSQL con health checks TCP
 - **Service**: ClusterIP interno `ep03-db:5432`
 
 ### 4. Backend
+
 - **Deployment**: Spring Boot con métricas para HPA
 - **Service**: ClusterIP interno `ep03-backend:8080`
 
 ### 5. Frontend
+
 - **Deployment**: Nginx con RollingUpdate
 - **Service**: Load Balancer público AWS
 
 ### 6. HPA
+
 Escalado automático basado en CPU:
+
 - Backend: 1-10 réplicas (70% CPU)
 - Frontend: 2-6 réplicas (60% CPU)
 
@@ -136,7 +149,7 @@ graph TB
     FE1 & FE2 -->|API REST| BE1 & BE2
     BE1 & BE2 -->|SQL| DB
     DB -.->|lee credenciales| Secret
-    
+  
     HPA_BE -.->|escala| BE1 & BE2
     HPA_FE -.->|escala| FE1 & FE2
 
@@ -174,7 +187,7 @@ flowchart LR
     C[templates/*.yaml] --> B
     B --> D[output/*.yaml]
     D --> E[kubectl apply]
-    
+  
     style A fill:#FF9900,stroke:#FF9900,color:#000
     style C fill:#336791,stroke:#336791,color:#fff
     style D fill:#28a745,stroke:#28a745,color:#fff
