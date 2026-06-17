@@ -77,3 +77,41 @@ kubectl get svc ep03-frontend \
   -n ep03 \
   -o custom-columns=NAME:.metadata.name,TYPE:.spec.type,CLUSTER-IP:.spec.clusterIP,EXTERNAL-HOST:.status.loadBalancer.ingress[0].hostname,PORT:.spec.ports[0].port
 ```
+
+## Paso 09 Dashboard
+
+Primero habilitar Container Insights y log group (ejecutar una sola vez):
+
+```bash
+cd bloque06-dashboard
+bash setup-dashboard.sh
+```
+
+Esperar 5-10 minutos para que Container Insights recolecte datos, luego crear el dashboard:
+
+```bash
+bash ejecutar.sh
+```
+
+Verificar:
+
+```bash
+bash verificar.sh
+```
+
+## Paso 10 Verificacion Integral
+
+Ahora ejecutaremos las 4 pruebas de validacion de operacion avanzada en un solo paso: HPA, Stress Test, Auto-Healing y Metricas. Se genera un reporte consolidado en `reports/`.
+
+```bash
+cd bloque07-verificacion
+bash ejecutar.sh
+```
+
+Para generar carga real y que las metricas del dashboard se muevan:
+
+```bash
+cd bloque07-verificacion
+bash stress_test.sh              # frontend, 60s, 50 workers
+bash stress_test.sh backend 120  # backend, 120s
+```

@@ -107,6 +107,15 @@ Resources:
       ClusterName: !Ref EksCluster
       AddonName: metrics-server
 
+  CloudWatchAddon:
+    Type: AWS::EKS::Addon
+    DependsOn: EksCluster
+
+    Properties:
+      ClusterName: !Ref EksCluster
+      AddonName: amazon-cloudwatch
+      ResolveConflicts: OVERWRITE
+
   EksNodeGroup:
     Type: AWS::EKS::Nodegroup
     DependsOn: EksCluster
