@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ==================================================================
 # GUIA 04 / BLOQUE 01 - Infraestructura Kubernetes consolidada
-# Crea/valida rapidamente la infra base de guia-03 bloques 1, 2 y 3:
+# Crea/valida rapidamente la infra base de guia-04 bloques 1, 2 y 3:
 #   - VPC Multi-AZ + endpoints
 #   - Cluster EKS + addons
 #   - NodeGroup SPOT

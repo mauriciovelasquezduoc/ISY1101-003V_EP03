@@ -1,6 +1,6 @@
 # Bloque 01 - Infraestructura K8s
 
-Este bloque consolida la preparacion de infraestructura de `guia-03` bloques 1, 2 y 3 para llegar rapidamente a un entorno Kubernetes listo en AWS.
+Este bloque consolida la preparacion de infraestructura de `guia-04` bloques 1, 2 y 3 para llegar rapidamente a un entorno Kubernetes listo en AWS.
 
 El script principal es:
 
@@ -84,8 +84,8 @@ bash ejecutar.sh
 
 ## Archivos locales usados
 
-- `templates/vpc.yaml`: template CloudFormation de VPC copiado desde guia-03.
-- `templates/cluster_eks.yaml`: template CloudFormation de EKS copiado desde guia-03.
+- `templates/vpc.yaml`: template CloudFormation de VPC copiado desde guia-04.
+- `templates/cluster_eks.yaml`: template CloudFormation de EKS copiado desde guia-04.
 - `../secrets.txt`: credenciales/variables de laboratorio ubicadas en la raiz de `guia-04`, si existe.
 
 ## Salida esperada
