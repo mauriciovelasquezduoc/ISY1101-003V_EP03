@@ -27,6 +27,8 @@ CONCURRENCY="${4:-10}"
 
 if [ -f "$SECRETS_FILE" ]; then
   while IFS='=' read -r key value || [ -n "$key" ]; do
+    key="${key%$'\r'}"
+    value="${value%$'\r'}"
     [ -z "${key:-}" ] && continue
     [[ "$key" == \#* ]] && continue
     export "$key=$value"
@@ -114,7 +116,7 @@ aws cloudwatch put-metric-data \
   --dimensions "Service=${TARGET}" \
   --value 1 \
   --unit "Count" \
-  --region "$REGION" 2>/dev/null || true
+  --region "$REGION"
 
 # ----------------------------------------------------------
 # Ejecutar carga real
@@ -265,7 +267,8 @@ aws cloudwatch put-metric-data \
   --dimensions "Service=${TARGET}" \
   --value "$ACTUAL_DURATION" \
   --unit "Seconds" \
-  --region "$REGION" 2>/dev/null && echo "  DeployDuration: ${ACTUAL_DURATION}s" || true
+  --region "$REGION"
+echo "  DeployDuration: ${ACTUAL_DURATION}s"
 
 # Requests por segundo como metrica custom
 aws cloudwatch put-metric-data \
@@ -274,7 +277,8 @@ aws cloudwatch put-metric-data \
   --dimensions "Service=${TARGET}" \
   --value "$RPS" \
   --unit "Count/Second" \
-  --region "$REGION" 2>/dev/null && echo "  RequestsPerSecond: $RPS" || true
+  --region "$REGION"
+echo "  RequestsPerSecond: $RPS"
 
 # Tasa de exito
 aws cloudwatch put-metric-data \
@@ -283,7 +287,8 @@ aws cloudwatch put-metric-data \
   --dimensions "Service=${TARGET}" \
   --value "$SUCCESS_RATE" \
   --unit "Percent" \
-  --region "$REGION" 2>/dev/null && echo "  SuccessRate: ${SUCCESS_RATE}%" || true
+  --region "$REGION"
+echo "  SuccessRate: ${SUCCESS_RATE}%"
 
 # Total de requests
 aws cloudwatch put-metric-data \
@@ -292,7 +297,8 @@ aws cloudwatch put-metric-data \
   --dimensions "Service=${TARGET}" \
   --value "$TOTAL_REQUESTS" \
   --unit "Count" \
-  --region "$REGION" 2>/dev/null && echo "  TotalRequests: $TOTAL_REQUESTS" || true
+  --region "$REGION"
+echo "  TotalRequests: $TOTAL_REQUESTS"
 
 # Marca de fin
 aws cloudwatch put-metric-data \
@@ -301,7 +307,7 @@ aws cloudwatch put-metric-data \
   --dimensions "Service=${TARGET}" \
   --value 0 \
   --unit "Count" \
-  --region "$REGION" 2>/dev/null || true
+  --region "$REGION"
 
 # ----------------------------------------------------------
 # Estado post-stress del cluster
@@ -319,6 +325,11 @@ kubectl get pods -n "$NAMESPACE" 2>/dev/null || echo "  (sin pods)"
 echo ""
 echo "--- Deployments ---"
 kubectl get deployment -n "$NAMESPACE" -o wide 2>/dev/null || echo "  (sin deployments)"
+
+echo ""
+echo "--- Publicando snapshot Kubernetes ---"
+AWS_REGION="$REGION" K8S_NAMESPACE="$NAMESPACE" \
+  bash "$GUIA04_DIR/bloque06-dashboard/publicar-k8s-metricas.sh"
 
 # ----------------------------------------------------------
 # Verificar escalamiento

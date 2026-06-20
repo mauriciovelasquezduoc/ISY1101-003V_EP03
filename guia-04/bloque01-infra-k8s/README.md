@@ -15,7 +15,7 @@ El script es idempotente: si la VPC, el cluster EKS, el NodeGroup o los addons y
 - VPC Multi-AZ `laboratorio-ep03` con subnets publicas, privadas de aplicacion y privadas de datos.
 - VPC Endpoints para servicios requeridos por EKS/ECR/CloudWatch.
 - Cluster EKS `laboratorio-ep03-eks`.
-- Addons EKS: `vpc-cni`, `coredns`, `kube-proxy` y `metrics-server`.
+- Addons EKS: `vpc-cni`, `coredns`, `kube-proxy`, `metrics-server` y `amazon-cloudwatch-observability`.
 - NodeGroup SPOT `laboratorio-ep03-nodegroup` en subnets privadas de aplicacion.
 - Kubeconfig local apuntando al cluster.
 - Validacion de nodos, pods de sistema, Metrics Server y CloudWatch logs.

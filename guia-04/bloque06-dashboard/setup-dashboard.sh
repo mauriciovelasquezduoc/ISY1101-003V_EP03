@@ -15,10 +15,14 @@ SECRETS_FILE="$GUIA04_DIR/secrets.txt"
 REGION="${AWS_REGION:-us-east-1}"
 CLUSTER_NAME="${EKS_CLUSTER_NAME:-laboratorio-ep03-eks}"
 NAMESPACE="${K8S_NAMESPACE:-ep03}"
-LOG_GROUP="/aws/eks/${CLUSTER_NAME}/application"
+ADDON_NAME="amazon-cloudwatch-observability"
+CLOUDWATCH_POLICY_ARN="arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
+NATIVE_CONTAINER_INSIGHTS=true
 
 if [ -f "$SECRETS_FILE" ]; then
   while IFS='=' read -r key value || [ -n "$key" ]; do
+    key="${key%$'\r'}"
+    value="${value%$'\r'}"
     [ -z "${key:-}" ] && continue
     [[ "$key" == \#* ]] && continue
     export "$key=$value"
@@ -41,97 +45,88 @@ echo ""
 # ----------------------------------------------------------
 echo "--- 1. Habilitando Container Insights ---"
 
-# Verificar si ya esta habilitado
-CI_STATUS=$(aws eks describe-cluster \
-  --name "$CLUSTER_NAME" \
-  --region "$REGION" \
-  --query "cluster.logging.clusterLogging[?enabledTypes[?Type=='audit']]" \
-  --output text 2>/dev/null || echo "")
-
-# Instalar addon amazon-cloudwatch
-echo "  Instalando addon amazon-cloudwatch..."
-aws eks create-addon \
+NODE_ROLE_ARN=$(aws eks describe-nodegroup \
   --cluster-name "$CLUSTER_NAME" \
-  --addon-name amazon-cloudwatch \
+  --nodegroup-name laboratorio-ep03-nodegroup \
   --region "$REGION" \
-  --resolve-conflicts OVERWRITE 2>/dev/null && \
-  echo "  addon amazon-cloudwatch creado" || \
-  echo "  addon amazon-cloudwatch ya existe o error (verificando...)"
+  --query 'nodegroup.nodeRole' \
+  --output text)
+NODE_ROLE_NAME="${NODE_ROLE_ARN##*/}"
+
+echo "  Verificando permisos en $NODE_ROLE_NAME..."
+if ! aws iam list-attached-role-policies \
+  --role-name "$NODE_ROLE_NAME" \
+  --query 'AttachedPolicies[].PolicyArn' \
+  --output text | grep -q "$CLOUDWATCH_POLICY_ARN"; then
+  if aws iam attach-role-policy \
+    --role-name "$NODE_ROLE_NAME" \
+    --policy-arn "$CLOUDWATCH_POLICY_ARN"; then
+    echo "  Politica CloudWatchAgentServerPolicy adjuntada"
+  else
+    NATIVE_CONTAINER_INSIGHTS=false
+    echo "  AVISO: AWS Academy no permite iam:AttachRolePolicy."
+    echo "  Se usaran metricas EP03/Kubernetes publicadas desde kubectl."
+  fi
+else
+  echo "  Politica CloudWatchAgentServerPolicy ya adjuntada"
+fi
+
+echo "  Instalando/verificando addon $ADDON_NAME..."
+if aws eks describe-addon \
+  --cluster-name "$CLUSTER_NAME" \
+  --addon-name "$ADDON_NAME" \
+  --region "$REGION" >/dev/null 2>&1; then
+  aws eks update-addon \
+    --cluster-name "$CLUSTER_NAME" \
+    --addon-name "$ADDON_NAME" \
+    --region "$REGION" \
+    --resolve-conflicts OVERWRITE >/dev/null
+else
+  aws eks create-addon \
+    --cluster-name "$CLUSTER_NAME" \
+    --addon-name "$ADDON_NAME" \
+    --region "$REGION" \
+    --resolve-conflicts OVERWRITE >/dev/null
+fi
 
 # Esperar addon
 echo "  Esperando addon..."
 for i in $(seq 1 30); do
   ADDON_STATUS=$(aws eks describe-addon \
     --cluster-name "$CLUSTER_NAME" \
-    --addon-name amazon-cloudwatch \
+    --addon-name "$ADDON_NAME" \
     --region "$REGION" \
     --query 'addon.status' \
     --output text 2>/dev/null || echo "")
   if [ "$ADDON_STATUS" = "ACTIVE" ]; then
-    echo "  addon amazon-cloudwatch: ACTIVE"
+    echo "  addon $ADDON_NAME: ACTIVE"
     break
   fi
   if [ "$i" -eq 30 ]; then
-    echo "  addon amazon-cloudwatch: $ADDON_STATUS (puede tardar mas)"
+    echo "  ERROR: addon $ADDON_NAME no llego a ACTIVE: $ADDON_STATUS"
+    exit 1
   fi
   sleep 10
 done
 
-# Habilitar Container Insights via Fluent Bit
 echo ""
-echo "  Instalando Fluent Bit para Container Insights..."
-cat <<'FLUENTBIT' | kubectl apply -f - 2>/dev/null || echo "  (Fluent Bit ya instalado o error)"
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: cloudwatch-fluent-bit
-  namespace: amazon-cloudwatch
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata:
-  name: cloudwatch-fluent-bit
-rules:
-  - apiGroups: [""]
-    resources: ["namespaces", "pods", "nodes", "nodes/proxy"]
-    verbs: ["get", "list", "watch"]
-  - apiGroups: [""]
-    resources: ["nodes/stats", "configmaps", "endpoints"]
-    verbs: ["get"]
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  name: cloudwatch-fluent-bit
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: cloudwatch-fluent-bit
-subjects:
-  - kind: ServiceAccount
-    name: cloudwatch-fluent-bit
-    namespace: amazon-cloudwatch
-FLUENTBIT
-
-echo "  Fluent Bit configurado"
+if [ "$NATIVE_CONTAINER_INSIGHTS" = true ]; then
+  echo "  Reiniciando agentes para tomar los permisos IAM..."
+  kubectl rollout restart daemonset/cloudwatch-agent -n amazon-cloudwatch
+  kubectl rollout restart daemonset/fluent-bit -n amazon-cloudwatch
+  kubectl rollout status daemonset/cloudwatch-agent -n amazon-cloudwatch --timeout=5m
+  kubectl rollout status daemonset/fluent-bit -n amazon-cloudwatch --timeout=5m
+else
+  AWS_REGION="$REGION" K8S_NAMESPACE="$NAMESPACE" \
+    bash "$SCRIPT_DIR/publicar-k8s-metricas.sh"
+fi
 echo ""
 
 # ----------------------------------------------------------
-# 2) Crear Log Group
+# 2) Verificar Log Groups administrados por Container Insights
 # ----------------------------------------------------------
-echo "--- 2. Creando Log Group ---"
-aws logs create-log-group \
-  --log-group-name "$LOG_GROUP" \
-  --region "$REGION" 2>/dev/null && \
-  echo "  Log group creado: $LOG_GROUP" || \
-  echo "  Log group ya existe: $LOG_GROUP"
-
-# Configurar retencion de 30 dias
-aws logs put-retention-policy \
-  --log-group-name "$LOG_GROUP" \
-  --retention-in-days 30 \
-  --region "$REGION" 2>/dev/null || true
-echo "  Retencion: 30 dias"
+echo "--- 2. Verificando Log Groups de Container Insights ---"
+echo "  Se crean automaticamente bajo /aws/containerinsights/${CLUSTER_NAME}/"
 echo ""
 
 # ----------------------------------------------------------
@@ -231,8 +226,8 @@ echo "============================================================="
 echo " SETUP COMPLETADO"
 echo "============================================================="
 echo ""
-echo "  1. Container Insights: addon amazon-cloudwatch instalado"
-echo "  2. Log Group: $LOG_GROUP creado"
+echo "  1. Container Insights: addon $ADDON_NAME instalado"
+echo "  2. Permisos: CloudWatchAgentServerPolicy configurada"
 echo "  3. EKS Logging: habilitado"
 echo "  4. Metrics Server: verificado"
 echo "  5. Metricas custom: publicadas"

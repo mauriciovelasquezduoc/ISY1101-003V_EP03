@@ -30,6 +30,8 @@ mkdir -p "$REPORT_DIR"
 # Cargar secrets.txt si existe
 if [ -f "$SECRETS_FILE" ]; then
   while IFS='=' read -r key value || [ -n "$key" ]; do
+    key="${key%$'\r'}"
+    value="${value%$'\r'}"
     [ -z "${key:-}" ] && continue
     [[ "$key" == \#* ]] && continue
     export "$key=$value"
@@ -220,6 +222,7 @@ else
 
   if [ "$TOTAL_REQUESTS" -gt 0 ]; then
     SUCCESS_RATE=$(( SUCCESS_REQUESTS * 100 / TOTAL_REQUESTS ))
+    REQUESTS_PER_SECOND=$(( TOTAL_REQUESTS / (STRESS_DURATION > 0 ? STRESS_DURATION : 1) ))
     echo ""
     echo "  Resultados del stress test:"
     echo "    Duracion:        ${STRESS_DURATION}s"
@@ -227,6 +230,17 @@ else
     echo "    Total requests:  $TOTAL_REQUESTS"
     echo "    Exitosos:        $SUCCESS_REQUESTS"
     echo "    Tasa de exito:   ${SUCCESS_RATE}%"
+    echo "    Requests/s:      $REQUESTS_PER_SECOND"
+
+    echo "  Publicando resultados en CloudWatch..."
+    aws cloudwatch put-metric-data \
+      --namespace Custom \
+      --metric-data \
+        "MetricName=RequestsPerSecond,Dimensions=[{Name=Service,Value=frontend}],Value=$REQUESTS_PER_SECOND,Unit=Count/Second" \
+        "MetricName=SuccessRate,Dimensions=[{Name=Service,Value=frontend}],Value=$SUCCESS_RATE,Unit=Percent" \
+        "MetricName=TotalRequests,Dimensions=[{Name=Service,Value=frontend}],Value=$TOTAL_REQUESTS,Unit=Count" \
+        "MetricName=DeployDuration,Dimensions=[{Name=Service,Value=frontend}],Value=$STRESS_DURATION,Unit=Seconds" \
+      --region "$REGION"
 
     if [ "$SUCCESS_RATE" -ge 90 ]; then
       record_step "Stress Test" "OK" "${TOTAL_REQUESTS} requests, ${SUCCESS_RATE}% exito"
@@ -247,6 +261,8 @@ else
   echo "  Estado post-stress:"
   kubectl get hpa -n "$NAMESPACE" 2>/dev/null || true
   kubectl get pods -n "$NAMESPACE" 2>/dev/null || true
+  AWS_REGION="$REGION" K8S_NAMESPACE="$NAMESPACE" \
+    bash "$GUIA04_DIR/bloque06-dashboard/publicar-k8s-metricas.sh"
 fi
 
 # ============================================================

@@ -113,7 +113,7 @@ Resources:
 
     Properties:
       ClusterName: !Ref EksCluster
-      AddonName: amazon-cloudwatch
+      AddonName: amazon-cloudwatch-observability
       ResolveConflicts: OVERWRITE
 
   EksNodeGroup:

@@ -24,8 +24,6 @@ VPC_TEMPLATE="$SCRIPT_DIR/templates/vpc.yaml"
 EKS_TEMPLATE="$SCRIPT_DIR/templates/cluster_eks.yaml"
 SECRETS_FILE="$GUIA04_DIR/secrets.txt"
 
-dos2unix $SECRETS_FILE
-
 mkdir -p "$REPORT_DIR"
 
 REPORT_LINES=()
@@ -46,6 +44,8 @@ load_secrets_if_present() {
   if [ -f "$SECRETS_FILE" ]; then
     log "Cargando variables desde $SECRETS_FILE"
     while IFS='=' read -r key value || [ -n "$key" ]; do
+      key="${key%$'\r'}"
+      value="${value%$'\r'}"
       [ -z "${key:-}" ] && continue
       [[ "$key" == \#* ]] && continue
       export "$key=$value"
@@ -196,7 +196,7 @@ ensure_eks_stack() {
     log "Stack EKS no existe. Se creara. Puede tardar 15-25 minutos."
   fi
 
-  aws cloudformation deploy \
+  if ! aws cloudformation deploy \
     --template-file "$EKS_TEMPLATE" \
     --stack-name "$EKS_STACK" \
     --region "$REGION" \
@@ -208,7 +208,15 @@ ensure_eks_stack() {
       PrivateAppSubnetA="$app_a" \
       PrivateAppSubnetB="$app_b" \
       EksClusterRoleArn="$cluster_role" \
-      EksNodeRoleArn="$node_role"
+      EksNodeRoleArn="$node_role"; then
+    warn "Fallo el despliegue EKS. Ultimos eventos con error:"
+    aws cloudformation describe-stack-events \
+      --stack-name "$EKS_STACK" \
+      --region "$REGION" \
+      --query 'StackEvents[?contains(ResourceStatus, `FAILED`) || contains(ResourceStatus, `ROLLBACK`)] | [0:10].[Timestamp,LogicalResourceId,ResourceStatus,ResourceStatusReason]' \
+      --output table 2>/dev/null || true
+    fail "No fue posible crear/actualizar el stack EKS."
+  fi
 
   wait_stack_stable "$EKS_STACK" || fail "El stack EKS no quedo estable. Revisa CloudFormation."
 
@@ -278,7 +286,7 @@ validate_observability() {
   record_step "Observabilidad" "OK" "Metrics Server/CloudWatch validados o en propagacion"
   add_report "### Observabilidad"
   add_report "- Metrics Server: addon EKS incluido en el template."
-  add_report "- CloudWatch: logging EKS habilitado en el cluster."
+  add_report "- CloudWatch: control plane logging habilitado y addon amazon-cloudwatch-observability incluido."
 }
 
 write_report() {
